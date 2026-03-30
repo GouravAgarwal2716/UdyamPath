@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
-import useOpenAI from '../hooks/useOpenAI';
-import useGNews from '../hooks/useGNews';
 import ScoreRing from '../components/ScoreRing';
 import StreakBadge from '../components/StreakBadge';
 import { Lock, Play, Star, Sparkles, TrendingUp, Users, ShieldAlert, Award, RefreshCw, BarChart, Flame } from 'lucide-react';
@@ -31,42 +29,10 @@ function TargetIcon(props) {
 export default function LearningDashboard() {
   const { state, updateState } = useAppContext();
   const navigate = useNavigate();
-  const { generateJSON } = useOpenAI();
-  const { fetchNews } = useGNews();
-  
-  const [selectedModule, setSelectedModule] = useState(null); // For modal
-  const [dynamicModules, setDynamicModules] = useState([]);
-  const [loadingDynamic, setLoadingDynamic] = useState(false);
-
-  // Generate dynamic modules once per session
-  useEffect(() => {
-    async function loadDynamic() {
-      if (state.idea && dynamicModules.length === 0 && !loadingDynamic) {
-        setLoadingDynamic(true);
-        try {
-          // Minimal mock news logic to pass to gemini
-          const recentNews = await fetchNews("Indian SaaS", 2);
-          const headlines = recentNews.map(n => n.title).join(", ");
-          
-          const prompt = `Based on this startup idea: ${state.idea} and these recent news headlines: [${headlines}], generate 2 module names and descriptions that would be most valuable for this founder to learn right now. Return EXACTLY this JSON format:
-[
-  { "name": "Module Name", "topic": "Brief Topic", "whyNow": "Why they need this right now based on news", "icon": "emoji" }
-]`;
-          const result = await generateJSON(prompt, 0.7);
-          if (Array.isArray(result)) {
-            setDynamicModules(result.slice(0, 2));
-          }
-        } catch (err) {
-          console.error("Failed to load dynamic modules", err);
-        } finally {
-          setLoadingDynamic(false);
-        }
-      }
-    }
-    loadDynamic();
-  }, [state.idea, fetchNews, generateJSON]); // eslint-disable-line
+  const [selectedModule, setSelectedModule] = useState(null);
 
   const progress = state.moduleProgress || {};
+
   const completedCount = Object.keys(progress).filter(k => progress[k].attempts > 0).length;
   
   // Overall mastery avg
@@ -180,39 +146,9 @@ export default function LearningDashboard() {
              )
           })}
         </div>
-
-        {/* DYNAMIC MODULES */}
-        <h2 className="text-2xl font-poppins font-bold text-white mb-6 flex items-center gap-2">
-           <Sparkles className="w-6 h-6 text-saffron" /> Built For You — Today's Challenges
-        </h2>
-        
-        {loadingDynamic ? (
-          <div className="glass-card p-8 flex items-center space-x-4 border border-saffron/20 animate-pulse">
-            <div className="w-12 h-12 rounded-full bg-surface"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-surface rounded w-3/4"></div>
-              <div className="h-3 bg-surface rounded w-1/2"></div>
-            </div>
-            <p className="text-sm font-inter text-saffron italic">Reading market news...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {dynamicModules.map((dynMod, idx) => (
-              <div key={idx} onClick={() => setSelectedModule({...dynMod, id: 'dyn_'+idx})} className="glass-card p-6 border-l-4 border-l-saffron hover:shadow-saffron-glow hover:-translate-y-1 transition-all cursor-pointer">
-                <div className="flex items-start gap-4">
-                  <div className="text-4xl">{dynMod.icon || '🚀'}</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">{dynMod.name}</h3>
-                    <p className="text-sm text-saffron font-bold mb-2">{dynMod.topic}</p>
-                    <p className="text-sm text-muted line-clamp-2">{dynMod.whyNow}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
       </div>
+
+
 
       {/* DIFFICULTY MODAL */}
       <AnimatePresence>

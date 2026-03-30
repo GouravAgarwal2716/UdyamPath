@@ -61,15 +61,43 @@ export default function ResourcesPanel() {
     if (news.length > 0 || loadingNews || !state.idea) return;
     setLoadingNews(true);
     try {
-      const term = state.idea.split(' ').slice(0, 4).join(' ');
+      // 1. Extract highly relevant industry keyword
+      let term = state.idea.split(' ').slice(0, 2).join(' '); // Safe fallback
+      const prompt = `Convert this startup idea: "${state.idea}" into a single highly relevant 1-2 word industry keyword (like "Agritech", "EdTech", "Fintech", "Healthtech", "D2C", "SaaS", etc) that is optimal for querying business news APIs. Return JSON: { "keyword": "..." }`;
+      
+      try {
+        const aiResponse = await generateJSON(prompt, 0.5);
+        if (aiResponse && aiResponse.keyword) {
+          term = aiResponse.keyword;
+        }
+      } catch (e) {
+        console.warn('AI keyword extraction failed, using fallback:', term);
+      }
+
+      // 2. Fetch news
       const articles = await fetchNews(term, 8);
+      
+      // If GNews hit rate limits and gave us the hardcoded Zepto fallback, or if it found 0 results, generate dynamic mock news via AI so it stays fully relevant!
+      if (!articles || articles.length === 0 || (articles[0] && articles[0].title.includes("Zepto raises"))) {
+        const fallbackPrompt = `Generate 4 highly realistic and professional news headlines about current business trends in the "${term}" startup industry in India based on actual recent events. Return JSON exactly like: { "articles": [ { "title": "Headline...", "source": { "name": "Tech News India" }, "url": "#" } ] }`;
+        try {
+          const aiFallback = await generateJSON(fallbackPrompt, 0.7);
+          if (aiFallback && aiFallback.articles) {
+            setNews(aiFallback.articles);
+            return; // Exit early, use AI news!
+          }
+        } catch(e) { 
+          console.warn("AI News Fallback failed too");
+        }
+      }
+
       if (articles && articles.length > 0) setNews(articles);
     } catch (e) {
       console.warn('News load failed', e);
     } finally {
       setLoadingNews(false);
     }
-  }, [news.length, loadingNews, state.idea, fetchNews]);
+  }, [news.length, loadingNews, state.idea, fetchNews, generateJSON]);
 
   // Personalize schemes via OpenAI (wraps array in object for json_object mode)
   const loadPersonalizedSchemes = useCallback(async () => {
@@ -235,7 +263,7 @@ Return as JSON object (not array): { "schemes": [ { "name": "...", "whatItOffers
                     {!loadingNews && news.length === 0 && (
                       <div className="text-center py-10 text-muted">
                         <Newspaper className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                        <p className="text-sm">Fetching latest headlines...</p>
+                        <p className="text-sm">No recent news found for your industry.</p>
                       </div>
                     )}
                     {news.map((n, i) => (

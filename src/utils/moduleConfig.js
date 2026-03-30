@@ -10,21 +10,31 @@ export const MOCK_ARTICLES = {
   'default': { title: "Indian Startup Ecosystem 2024", description: "Despite global slowdown, Indian B2B SaaS and D2C brands continue scaling — driven by frugal innovation, vernacular reach, and mobile-first strategies.", date: new Date().toISOString(), url: "https://example.com/india" }
 };
 
-export const generateScenarioPrompt = (idea, moduleName, topic, difficulty, article, history) => {
-  const difficultyInstructions = {
+export const generateScenarioPrompt = (idea, moduleName, topic, difficulty, article, history, language = 'en') => {
+  const diffInstructions = {
     'Beginner': 'Simple scenarios, one variable at a time, clear correct answers, very relatable analogies.',
     'Intermediate': 'Multiple competing variables, some ambiguity, real trade-offs required.',
     'Expert': 'High complexity, contradictory data, time pressure framing, no obvious right answer.'
   }[difficulty] || 'Intermediate';
 
+  const langMap = {
+    'en': 'English',
+    'hi': 'Hindi (with English business terms)',
+    'te': 'Telugu (with English business terms)',
+    'ta': 'Tamil (with English business terms)'
+  };
+  const targetLanguage = langMap[language] || 'English';
+
   return `You are an IIM professor creating an immersive 10-minute startup case study simulation.
 
 Founder's idea: "${idea}"
 Module: ${moduleName} — ${topic}
-Difficulty: ${difficulty} — ${difficultyInstructions}
+Difficulty: ${difficulty} — ${diffInstructions}
 Real case study basis: ${article.title} — ${article.description}
 
 MISSION: Create a 3-STAGE narrative where the founder lives through an entire business crisis arc — from discovering the problem → making critical decisions → recovering and growing. The whole journey should take 8-12 minutes.
+
+LANGUAGE INSTRUCTION: ALL generated content (descriptions, questions, options, explanations, avatarScript) MUST BE IN ${targetLanguage}. The JSON keys must remain in English.
 
 CRITICAL RULES:
 1. The real company (from the article) is the MENTOR story. The founder's specific idea "${idea}" is the STUDENT's parallel journey.
