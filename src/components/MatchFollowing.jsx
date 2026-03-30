@@ -27,7 +27,7 @@ export default function MatchFollowing({ data, onNext, isLast }) {
       }
       setRightItems(rights);
     }
-  }, [data]);
+  }, [data?.id, data?.question]); // Depend on ID/Question so it doesn't re-shuffle every second from parent timer re-renders
 
   const handleLeftClick = (id) => {
     if (isSubmitted) return;

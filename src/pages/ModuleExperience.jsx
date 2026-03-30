@@ -6,7 +6,6 @@ import useGNews from '../hooks/useGNews';
 import useOpenAI from '../hooks/useOpenAI';
 import useSarvam from '../hooks/useSarvam';
 import { MOCK_ARTICLES, generateScenarioPrompt } from '../utils/moduleConfig';
-import { strings } from '../utils/langStrings';
 import Avatar from '../components/Avatar';
 import QuestionEngine from '../components/QuestionEngine';
 import { MessageCircle, X, Clock, AlertCircle, LogOut } from 'lucide-react';
@@ -58,7 +57,7 @@ export default function ModuleExperience() {
         // 2. Gemini Scenario Generation
         const answerHistoryStr = JSON.stringify(state.moduleProgress[mod.id]?.answerHistory || []);
         const prompt = generateScenarioPrompt(
-          state.idea, mod.name, mod.topic, mod.difficulty, selectedArticle, answerHistoryStr, state.language
+          state.idea, mod.name, mod.topic, mod.difficulty, selectedArticle, answerHistoryStr
         );
 
         const generatedScenario = await generateJSON(prompt, 0.9);
@@ -71,12 +70,10 @@ export default function ModuleExperience() {
 
         setLoadingStep(3); // 🔊 Preparing your mentor...
 
-        // 3. Sarvam TTS (Done asynchronously so it doesn't block UI load)
-        synthesizeSpeech(generatedScenario.avatarScript).then(audio => {
-          if (audio) setAudioUrl(audio);
-        }).catch(e => console.error("Sarvam TTS failed:", e));
+        // 3. Sarvam TTS
+        const audio = await synthesizeSpeech(generatedScenario.avatarScript);
+        setAudioUrl(audio);
 
-        // Immediately finish loading visually
         setLoadingStep(4); // Done
 
         // Start timer
@@ -86,7 +83,7 @@ export default function ModuleExperience() {
 
       } catch (err) {
         console.error("Experience Load Error:", err);
-        setError(err.message || "Failed to load scenario. Please try again.");
+        setError("Failed to load scenario. Please try again.");
       }
     };
 
@@ -127,12 +124,11 @@ export default function ModuleExperience() {
   }
 
   if (loadingStep < 4) {
-    const s = strings[state.language] || strings['en'];
     const loadingLabels = [
       "",
-      "📰 " + (s.checking || "Finding your real-world case study..."),
-      "🤖 " + (s.preparing || "Designing your specific challenge room..."),
-      "🔊 " + (s.analyzing || "Preparing your mentor...")
+      "📰 Finding your real-world case study...",
+      "🤖 Designing your specific challenge room...",
+      "🔊 Preparing your mentor..."
     ];
     return (
       <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center text-white">
