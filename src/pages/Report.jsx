@@ -1,205 +1,223 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Download, RotateCcw, MessageCircle, ArrowRight, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { FileDown, ArrowLeft, Lightbulb, Target, TrendingUp, AlertTriangle, BookOpen } from 'lucide-react';
+import useOpenAI from '../hooks/useOpenAI';
+import ScoreRing from '../components/ScoreRing';
+import GrowthChart from '../components/GrowthChart';
+import { generatePDFReport } from '../utils/pdfGenerator';
 
 export default function Report() {
+  const { state, updateState } = useAppContext();
   const navigate = useNavigate();
-  const { state } = useAppContext();
-  const [downloading, setDownloading] = useState(false);
+  const { generateJSON } = useOpenAI();
+  const [loading, setLoading] = useState(true);
+  const [insights, setInsights] = useState(null);
 
-  const lastAnswer = state.currentAnswers?.[state.currentAnswers.length - 1];
+  // Derive score
+  const score = state.currentAnswers?.filter(a => a.isCorrect).length || 0;
+  
+  const getPerformanceLabel = (s) => {
+    if (s >= 6) return "IIM-Level Thinker 🏆";
+    if (s >= 5) return "Exceptional Founder 💪";
+    if (s >= 4) return "Strong Strategist 📈";
+    if (s >= 3) return "Good Progress 📚";
+    return "Just Getting Started 🌱";
+  };
 
   useEffect(() => {
-    if (!lastAnswer) {
-      navigate('/modules');
+    if (!state.currentAnswers || state.currentAnswers.length === 0) {
+      navigate('/dashboard');
+      return;
     }
-  }, [lastAnswer, navigate]);
 
-  if (!lastAnswer) return null;
+    const fetchInsights = async () => {
+      try {
+        const prompt = `Analyze this founder's performance in an entrepreneurship case study.
+Idea: ${state.idea}
+Module: ${state.currentModule?.name}
+Score: ${score}/6
+Detailed Answers: ${JSON.stringify(state.currentAnswers)}
 
-  const { moduleContent, scenario, attempts, finalScore } = lastAnswer;
-  const optimalAttempt = attempts.find(a => a.consequence.isOptimal);
-  const failedAttempts = attempts.filter(a => !a.consequence.isOptimal);
+Return ONLY JSON:
+{
+  "overallInsight": "String (2-3 sentences)",
+  "strength": "String (what they clearly understand)",
+  "blindSpot": "String (their most critical gap)",
+  "oneLineSolution": "String (THE HERO ELEMENT - single most important takeaway)",
+  "howRealFounderSolvedIt": "String (2-3 sentences about the real company's decision)",
+  "analogyForTheirIdea": "String (connect case study specifically to their idea)",
+  "nextStepAction": "String (one specific thing to do THIS WEEK)",
+  "nextRecommendedModule": "String (which module next based on blind spot)",
+  "encouragement": "String (warm Indian mentor tone)"
+}`;
+        
+        const result = await generateJSON(prompt, 0.6);
+        setInsights(result);
 
-  const generatePDF = () => {
-    setDownloading(true);
-    try {
-      // jsPDF is loaded globally via CDN in index.html
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      
-      const pageWidth = doc.internal.pageSize.getWidth();
-      
-      // Header
-      doc.setFillColor(255, 107, 53); // Saffron
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(24);
-      doc.text("UdyamPath Executive Summary", 15, 25);
-      
-      // Meta data
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.text(`Founder: ${state.user?.name || 'Startup Founder'}`, 15, 55);
-      doc.text(`Startup Idea: ${state.idea.substring(0, 50)}...`, 15, 65);
-      doc.text(`Module Completed: ${moduleContent.name}`, 15, 75);
-      doc.text(`Final Diagnostic Score: ${finalScore}/100`, 15, 85);
-      
-      doc.setDrawColor(200, 200, 200);
-      doc.line(15, 95, pageWidth - 15, 95);
-
-      // Scenario Output
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(255, 107, 53);
-      doc.text("The Challenge", 15, 110);
-      
-      doc.setTextColor(50, 50, 50);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      
-      const splitScenario = doc.splitTextToSize(scenario.context, pageWidth - 30);
-      doc.text(splitScenario, 15, 120);
-      
-      let cursorY = 120 + (splitScenario.length * 7) + 10;
-      
-      // The Golden Insight
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(15, 155, 88); // Green
-      doc.text("The Proven Formula (Optimal Insight)", 15, cursorY);
-      cursorY += 10;
-      
-      doc.setTextColor(50, 50, 50);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      const splitInsight = doc.splitTextToSize(optimalAttempt?.consequence.insight || '', pageWidth - 30);
-      doc.text(splitInsight, 15, cursorY);
-      cursorY += (splitInsight.length * 7) + 15;
-      
-      // Mistakes Matrix
-      if (failedAttempts.length > 0) {
-         doc.setFont("helvetica", "bold");
-         doc.setFontSize(16);
-         doc.setTextColor(233, 69, 96); // Red
-         doc.text("Avoidable Mistakes (Trial & Error Trace)", 15, cursorY);
-         cursorY += 10;
-         
-         failedAttempts.forEach((fa, i) => {
-            if (cursorY > 260) {
-               doc.addPage();
-               cursorY = 20;
+        // Update global state tracking
+        updateState({
+          report: { score, insights: result, generatedAt: new Date().toISOString() },
+          moduleProgress: {
+            ...state.moduleProgress,
+            [state.currentModule.id]: {
+              ...(state.moduleProgress[state.currentModule.id] || {}),
+              attempts: (state.moduleProgress[state.currentModule.id]?.attempts || 0) + 1,
+              lastScore: score,
+              scoreHistory: [...(state.moduleProgress[state.currentModule.id]?.scoreHistory || []), score],
+              masteryLevel: Math.min(100, (state.moduleProgress[state.currentModule.id]?.masteryLevel || 0) + (score > 4 ? 15 : score >= 3 ? 10 : 5))
             }
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Misstep ${i+1}: ${fa.optionText}`, 15, cursorY);
-            cursorY += 7;
-            
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            const fl = doc.splitTextToSize(`Consequence: ${fa.consequence.insight}`, pageWidth - 30);
-            doc.text(fl, 15, cursorY);
-            cursorY += (fl.length * 6) + 8;
-         });
+          }
+        });
+
+      } catch (err) {
+        console.error("Insights Generation Failed", err);
+      } finally {
+        setLoading(false);
       }
+    };
+    
+    fetchInsights();
+  }, []); // eslint-disable-line
 
-      // Footer
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text("Generated by UdyamPath AI - Built for Bharat", pageWidth/2, 290, { align: 'center' });
-
-      doc.save(`UdyamPath_Report_${moduleContent.name.replace(/\\s+/g, '_')}.pdf`);
-    } catch(err) {
-      console.error(err);
-      alert('Failed to generate PDF. Make sure jsPDF is loaded.');
-    } finally {
-      setDownloading(false);
+  const handleDownloadPDF = () => {
+    if (insights && state) {
+       generatePDFReport(state, { score, insights });
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 border-4 border-saffron/30 border-t-saffron rounded-full animate-spin mb-6"></div>
+        <p className="text-xl text-white font-poppins animate-pulse">Udyam Guru is writing your personalized action plan...</p>
+      </div>
+    );
+  }
+
+  if (!insights) return <div className="p-24 text-white text-center">Failed to load report. Check console.</div>;
+
   return (
-    <div className="min-h-screen bg-[#1a1a2e] pt-24 pb-24 px-4 font-inter text-white">
-      <div className="max-w-4xl mx-auto space-y-8 animate-slide-up">
-         
-         <div className="flex justify-between items-center bg-[#202f36] p-4 rounded-2xl border border-[#2b3e47] shadow-lg">
-            <button onClick={() => navigate('/modules')} className="text-white/60 hover:text-[#FF6B35] flex items-center gap-2 font-bold px-4 py-2 transition-colors">
-               <ArrowLeft className="w-5 h-5" /> Back to Modules
-            </button>
-            <button 
-               onClick={generatePDF} 
-               disabled={downloading}
-               className="btn-primary flex items-center gap-2 px-6 py-2 shadow-[0_0_20px_rgba(255,107,53,0.3)] disabled:opacity-50"
-            >
-               <FileDown className="w-5 h-5"/>
-               {downloading ? 'Compiling PDF...' : 'Download Full Report'}
-            </button>
-         </div>
+    <div className="bg-navy min-h-screen pt-24 pb-24 px-6 relative overflow-hidden">
+      
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-saffron/5 rounded-full blur-3xl -mr-[250px] -mt-[250px] pointer-events-none"></div>
 
-         <div className="flex flex-col md:flex-row gap-8">
-            {/* Score Ring */}
-            <div className="w-full md:w-1/3 bg-[#16213e] p-8 rounded-3xl border border-white/10 flex flex-col items-center justify-center shadow-xl">
-               <h3 className="font-poppins font-bold text-lg text-white/50 uppercase tracking-widest mb-4">Module Score</h3>
-               <div className="w-48 h-48 relative mb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                     <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={15} data={[{ name: 'Score', value: finalScore, fill: finalScore > 70 ? '#0f9b58' : finalScore > 40 ? '#FFD700' : '#e94560' }]} startAngle={90} endAngle={-270}>
-                        <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                        <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} clockWise dataKey="value" cornerRadius={10} animationDuration={1000} />
-                     </RadialBarChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center flex-col">
-                     <span className="font-poppins font-black text-5xl text-white">{finalScore}</span>
-                  </div>
-               </div>
-               <p className="font-bold text-center text-white/80 leading-relaxed">
-                  {finalScore === 100 ? "Flawless Execution! You immediately identified the optimal strategy." : `You found the right path after ${failedAttempts.length} missteps. Mistakes are the best teachers.`}
-               </p>
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* HERO SECTION */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-saffron rounded-2xl p-8 md:p-12 text-center shadow-[0_0_40px_rgba(255,107,53,0.4)] relative"
+        >
+          <div className="inline-block bg-white/20 px-4 py-1 rounded-full text-white font-bold text-sm tracking-widest uppercase mb-4">
+            The Golden Rule
+          </div>
+          <h1 className="text-3xl md:text-5xl font-poppins font-extrabold text-white leading-tight">
+            "{insights.oneLineSolution}"
+          </h1>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          {/* LEFT COL: SCORE & ACTIONS */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-8 md:col-span-1">
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center">
+               <ScoreRing score={(score / 6) * 100} label={`${score} / 6`} color="#0f9b58" delay={500} />
+               <h3 className="text-xl font-bold text-white mt-4">{getPerformanceLabel(score)}</h3>
+               <p className="text-muted mt-2 text-sm">{state.currentModule?.timeSpent ? `You spent ${Math.round(state.currentModule.timeSpent/60)} minutes thinking deeply.` : 'Quick but insightful!'}</p>
             </div>
 
-            {/* The Golden Insight / Success Review */}
-            <div className="w-full md:w-2/3 flex flex-col gap-6">
+            <div className="glass-card p-6 border-2 border-saffron bg-saffron/5">
+               <h3 className="text-saffron font-bold text-sm uppercase tracking-wider mb-3">DO THIS THIS WEEK</h3>
+               <p className="text-white font-bold leading-relaxed">{insights.nextStepAction}</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button onClick={handleDownloadPDF} className="btn-primary w-full flex items-center justify-center gap-2 py-4">
+                <Download className="w-5 h-5" /> Download Full PDF Report
+              </button>
+              
+              <button onClick={() => navigate('/module')} className="btn-ghost w-full flex items-center justify-center gap-2 py-4 border-white/20 text-white hover:text-saffron">
+                <RotateCcw className="w-5 h-5" /> Try Same Module Again
+              </button>
+
+              <button onClick={() => navigate('/dashboard')} className="glass-card w-full flex items-center justify-between p-4 group hover:border-saffron/50 transition-colors">
+                 <div className="text-left">
+                   <span className="text-xs text-muted block uppercase tracking-wider">Next Recommended</span>
+                   <span className="text-white font-bold">{insights.nextRecommendedModule}</span>
+                 </div>
+                 <ArrowRight className="w-5 h-5 text-muted group-hover:text-saffron group-hover:translate-x-1" />
+              </button>
+            </div>
+            
+            {/* Show Growth Chart if they've attempted this module before */}
+            {state.moduleProgress[state.currentModule.id]?.scoreHistory?.length >= 2 && (
+              <GrowthChart history={state.moduleProgress[state.currentModule.id]?.scoreHistory || []} />
+            )}
+          </motion.div>
+
+          {/* RIGHT COL: INSIGHTS & ANSWERS */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-8 md:col-span-2">
+             
+             {/* Bento Insights */}
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="glass-card p-6 border-t-2 border-t-successGreen">
+                 <h4 className="text-successGreen text-sm font-bold uppercase tracking-wider mb-2">Strength</h4>
+                 <p className="text-white text-sm leading-relaxed">{insights.strength}</p>
+               </div>
+               <div className="glass-card p-6 border-t-2 border-t-accentRed">
+                 <h4 className="text-accentRed text-sm font-bold uppercase tracking-wider mb-2">Blind Spot</h4>
+                 <p className="text-white text-sm leading-relaxed">{insights.blindSpot}</p>
+               </div>
+               <div className="glass-card p-6 bg-surface/80">
+                 <h4 className="text-saffron text-sm font-bold uppercase tracking-wider mb-2">Real Founder Reality</h4>
+                 <p className="text-muted text-sm leading-relaxed italic border-l border-saffron pl-3">"{insights.howRealFounderSolvedIt}"</p>
+               </div>
+               <div className="glass-card p-6 bg-surface/80 border border-saffron/20">
+                 <h4 className="text-saffron text-sm font-bold uppercase tracking-wider mb-2">Your Analogy</h4>
+                 <p className="text-white text-sm leading-relaxed">{insights.analogyForTheirIdea}</p>
+               </div>
+             </div>
+
+             {/* Personal Message */}
+             <div className="glass-card p-6 flex flex-col md:flex-row gap-6 items-center">
+                <div className="w-16 h-16 rounded-full bg-navy border border-saffron flex items-center justify-center font-bold text-saffron text-2xl flex-shrink-0">
+                  UG
+                </div>
+                <p className="text-white text-lg font-medium italic">"{insights.encouragement}"</p>
+             </div>
+
+             {/* Answer Review Accordion */}
+             <div className="glass-card p-6 overflow-hidden">
+               <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4 flex items-center gap-2">
+                 <FileText className="w-5 h-5 text-saffron"/> Answer Review Log
+               </h3>
                
-               <div className="bg-[#f1ffde] border border-[#58cc02]/30 p-8 rounded-3xl shadow-[0_10px_40px_rgba(88,204,2,0.1)] relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#58cc02]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                  <div className="flex items-center gap-3 mb-6 relative z-10">
-                     <div className="p-3 bg-[#58cc02]/20 rounded-xl"><Lightbulb className="w-6 h-6 text-[#4da803]"/></div>
-                     <h2 className="font-poppins font-black text-2xl text-[#4da803]">The Golden Formula</h2>
-                  </div>
-                  <p className="text-[#3b8502] text-lg font-medium leading-relaxed relative z-10">
-                     {optimalAttempt?.consequence.insight}
-                  </p>
-               </div>
-
-               {/* Mistake Trace Log */}
-               {failedAttempts.length > 0 && (
-                  <div className="bg-[#202f36] border border-[#2b3e47] p-8 rounded-3xl">
-                     <div className="flex items-center gap-3 mb-6">
-                        <div className="p-3 bg-white/5 rounded-xl"><AlertTriangle className="w-6 h-6 text-[#FFD700]"/></div>
-                        <h2 className="font-poppins font-black text-xl text-white">Avoidable Pitfalls Traversed</h2>
-                     </div>
-                     <div className="space-y-6">
-                        {failedAttempts.map((fa, i) => (
-                           <div key={i} className="pl-4 border-l-2 border-[#e94560]/30 relative">
-                              <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-[#1a1a2e] border-2 border-[#e94560]"></div>
-                              <h4 className="font-bold text-white mb-2 leading-relaxed">{fa.optionText}</h4>
-                              <p className="text-[#e94560] text-sm bg-[#e94560]/5 p-3 rounded-xl border border-[#e94560]/10 leading-relaxed font-medium">
-                                 {fa.consequence.insight}
-                              </p>
+               <div className="space-y-6">
+                 {state.currentAnswers?.map((ans, i) => (
+                   <div key={i} className="pb-6 border-b border-white/5 last:border-0">
+                      <div className="flex gap-4">
+                        <div className="mt-1">
+                          {ans.isCorrect ? <CheckCircle className="w-6 h-6 text-successGreen" /> : <XCircle className="w-6 h-6 text-accentRed" />}
+                        </div>
+                        <div className="flex-1">
+                           <p className="text-white font-bold mb-2">Q: {ans.question}</p>
+                           <p className="text-sm text-muted mb-2">Your Answer: <span className={`font-medium ${ans.isCorrect ? 'text-successGreen' : 'text-accentRed'}`}>{(typeof ans.userAnswer === 'object' ? JSON.stringify(ans.userAnswer) : ans.userAnswer?.toString()) || "None"}</span></p>
+                           <div className="bg-surface p-3 rounded text-sm text-white/80 leading-relaxed border-l border-white/10">
+                             {ans.explanation}
                            </div>
-                        ))}
-                     </div>
-                  </div>
-               )}
+                        </div>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+             </div>
 
-            </div>
-         </div>
-
+          </motion.div>
+        </div>
       </div>
     </div>
   );

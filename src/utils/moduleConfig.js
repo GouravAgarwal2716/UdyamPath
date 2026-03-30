@@ -1,0 +1,181 @@
+export const MOCK_ARTICLES = {
+  'seed': { title: "Zepto raises $340M in strong funding round", description: "Quick commerce startup Zepto has raised $340 million at a $5 billion valuation despite a challenging macro environment — driven purely by unit economics discipline.", date: "2024-08-15", url: "https://example.com/zepto" },
+  'crisis': { title: "Byju's navigates massive valuation markdown", description: "Edtech decacorn Byju's faces a crisis as investors mark down its valuation by 90%, employees go unpaid, and the BCCI threatens a Rs 158 crore lawsuit.", date: "2024-01-10", url: "https://example.com/byjus" },
+  'customers': { title: "Dunzo's early hustle to find first 100 customers", description: "How Dunzo used personal WhatsApp messages to onboard its first users in Bengaluru, with Kabeer personally calling every customer who churned.", date: "2018-05-12", url: "https://example.com/dunzo" },
+  'team': { title: "Freshworks early hiring blueprint", description: "Girish Mathrubootham's insights on hiring the first 50 engineers in Chennai — focusing on culture fit over credentials and paying above-market early to retain talent.", date: "2019-11-20", url: "https://example.com/freshworks" },
+  'compliance': { title: "Paytm faces RBI regulatory action", description: "RBI restricts Paytm Payments Bank from accepting new deposits, causing stock to crash 40% in one week and forcing a complete business model restructure.", date: "2024-01-31", url: "https://example.com/paytm" },
+  'marketing': { title: "Zomato's zero budget viral marketing", description: "How Zomato used quirky emails, social media roasts, and meme marketing to achieve virality — spending virtually nothing while competitors burned crores on TV ads.", date: "2020-03-05", url: "https://example.com/zomato" },
+  'pivot': { title: "Naukri.com's pivot that saved the company", description: "Sanjeev Bikhchandani realized the free classifieds model was burning cash with no path to profitability. His painful pivot to subscriptions was mocked — then celebrated.", date: "2002-08-10", url: "https://example.com/naukri" },
+  'revenue': { title: "ShareChat's monetization journey", description: "ShareChat introduces virtual gifting and brand integrations to monetize its massive Tier 2 and Tier 3 vernacular userbase after 4 years of pure growth focus.", date: "2022-07-22", url: "https://example.com/sharechat" },
+  'default': { title: "Indian Startup Ecosystem 2024", description: "Despite global slowdown, Indian B2B SaaS and D2C brands continue scaling — driven by frugal innovation, vernacular reach, and mobile-first strategies.", date: new Date().toISOString(), url: "https://example.com/india" }
+};
+
+export const generateScenarioPrompt = (idea, moduleName, topic, difficulty, article, history) => {
+  const difficultyInstructions = {
+    'Beginner': 'Simple scenarios, one variable at a time, clear correct answers, very relatable analogies.',
+    'Intermediate': 'Multiple competing variables, some ambiguity, real trade-offs required.',
+    'Expert': 'High complexity, contradictory data, time pressure framing, no obvious right answer.'
+  }[difficulty] || 'Intermediate';
+
+  return `You are an IIM professor creating an immersive 10-minute startup case study simulation.
+
+Founder's idea: "${idea}"
+Module: ${moduleName} — ${topic}
+Difficulty: ${difficulty} — ${difficultyInstructions}
+Real case study basis: ${article.title} — ${article.description}
+
+MISSION: Create a 3-STAGE narrative where the founder lives through an entire business crisis arc — from discovering the problem → making critical decisions → recovering and growing. The whole journey should take 8-12 minutes.
+
+CRITICAL RULES:
+1. The real company (from the article) is the MENTOR story. The founder's specific idea "${idea}" is the STUDENT's parallel journey.
+2. Every question must explicitly say "For YOUR idea: ${idea}..." to make it personal.
+3. Numbers must be specific and realistic (₹ amounts, days, percentages).
+4. Each stage starts with a 2-3 sentence NARRATION block that advances the story before questions.
+5. Build real emotional tension — the founder is at risk of losing everything.
+6. 15 questions total, varied types, real branching consequences.
+
+Return EXACTLY this JSON (no markdown, no code fences):
+{
+  "caseStudyTitle": "String — dramatic title",
+  "companyName": "String — the real company",
+  "companyContext": "String (3-4 sentences about the real company)",
+  "whatHappened": "String (4-5 sentences, the core crisis with real numbers)",
+  "yourSituation": "String (3-4 sentences connecting to '${idea}')",
+  "keyChallenge": "String (1 powerful dramatic question the founder faces)",
+  "stakesClarification": "String (what happens if they fail — be specific)",
+  "avatarScript": "String (70-90 words, warm Indian mentor speaking to the founder, referencing their specific idea)",
+  "stages": [
+    {
+      "id": 1,
+      "title": "Stage 1: The Crisis Hits",
+      "narration": "String (2-3 sentences setting up Stage 1 — the problem just emerged for the real company AND for the founder's idea)"
+    },
+    {
+      "id": 2,
+      "title": "Stage 2: The Critical Decision",
+      "narration": "String (2-3 sentences — things got worse, now a major fork in the road)"
+    },
+    {
+      "id": 3,
+      "title": "Stage 3: Recover & Scale",
+      "narration": "String (2-3 sentences — survived the crisis, now building forward)"
+    }
+  ],
+  "questions": [
+    {
+      "id": 1, "stage": 1, "type": "mcq",
+      "context": "String (1 sentence setting the scene)",
+      "question": "String — starts with 'For YOUR idea: ${idea}...'",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "A", "explanation": "String (2 sentences, mention real company outcome)", "analogy": "String (Indian analogy)", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 2, "stage": 1, "type": "truefalse",
+      "context": "String",
+      "statement": "String (a bold claim about the right strategy for this crisis)",
+      "correct": true,
+      "explanation": "String", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 3, "stage": 1, "type": "mcq",
+      "context": "String",
+      "question": "String — hard trade-off question",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "B", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 4, "stage": 1, "type": "fillblank",
+      "context": "String",
+      "sentence": "String — use ___ for the missing word/number (e.g. 'The founder should focus on ___ before scaling.')",
+      "answer": "String", "acceptable_answers": ["String", "String"], "explanation": "String", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 5, "stage": 1, "type": "mcq",
+      "context": "String — stage 1 culminates here",
+      "question": "String — the stage 1 final decision",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "C", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 6, "stage": 2, "type": "mcq",
+      "context": "String — stage 2 opens, crisis deepens",
+      "question": "String — now the stakes are higher",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "A", "explanation": "String", "analogy": "String", "impactIfWrong": "String",
+      "branchesTo": { "ifCorrect": "stage2_expert", "otherwise": "stage2_support" }
+    },
+    {
+      "id": 7, "stage": 2, "type": "match",
+      "context": "String",
+      "question": "Match each strategy to its correct outcome in this scenario",
+      "pairs": [
+        { "left": "String", "right": "String" },
+        { "left": "String", "right": "String" },
+        { "left": "String", "right": "String" },
+        { "left": "String", "right": "String" }
+      ],
+      "explanation": "String", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 8, "stage": 2, "type": "mcq",
+      "context": "String — new data point emerges",
+      "question": "String — what does this data tell you",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "D", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 9, "stage": 2, "type": "truefalse",
+      "context": "String",
+      "statement": "String — a common founder misconception that sounds true",
+      "correct": false,
+      "explanation": "String (explain the counterintuitive truth)", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 10, "stage": 2, "type": "mcq",
+      "context": "String — competitor makes a move",
+      "question": "String — how do you respond",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "B", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 11, "stage": 2, "type": "fillblank",
+      "context": "String — stage 2 analysis",
+      "sentence": "String — use ___ for blank (a metric or strategy keyword)",
+      "answer": "String", "acceptable_answers": ["String", "String"], "explanation": "String", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 12, "stage": 3, "type": "mcq",
+      "context": "String — survived! Now growing. Stage 3 opens.",
+      "question": "String — growth strategy question",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "A", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 13, "stage": 3, "type": "truefalse",
+      "context": "String",
+      "statement": "String — about sustainable growth vs growth at all costs",
+      "correct": true,
+      "explanation": "String", "analogy": "String", "branchesTo": null
+    },
+    {
+      "id": 14, "stage": 3, "type": "mcq",
+      "context": "String — a key partnership opportunity appears",
+      "question": "String — how do you evaluate this opportunity",
+      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
+      "correct": "C", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
+    },
+    {
+      "id": 15, "stage": 3, "type": "openended",
+      "context": "You've lived through the full arc. Now apply your learnings.",
+      "question": "Based on how ${article.title.split(' ').slice(0,3).join(' ')} handled this crisis — write YOUR specific 2-step action plan for the next 30 days for your idea: ${idea}",
+      "scoringCriteria": "Must be specific to their idea, include at least one real metric or milestone, show learning from the case study",
+      "exampleGoodAnswer": "String — a strong example answer referencing both the real company lesson and their specific idea",
+      "branchesTo": null
+    }
+  ],
+  "realWorldOutcome": "String (what actually happened to the real company — 2-3 sentences with numbers)",
+  "keyLearning": "String (the one universally applicable insight)",
+  "howThisApplies": "String (directly connecting to '${idea}')",
+  "nextStepAction": "String (one specific thing the founder can do THIS WEEK)"
+}`;
+};

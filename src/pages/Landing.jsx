@@ -1,194 +1,223 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { strings } from '../utils/langStrings';
-import { Play, TrendingUp, Globe, HeartPulse, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { PlayCircle, Award, Target, BookOpen, TrendingUp, Download } from 'lucide-react';
 
-export default function Landing() {
-  const navigate = useNavigate();
-  const { state } = useAppContext();
-  const t = strings[state.language] || strings['en'];
-
-  // Particles animation
+const ParticleBackground = () => {
   const canvasRef = useRef(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let particles = [];
-    const particleCount = 40;
-
-    class Particle {
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 3 + 1;
-        this.speedX = Math.random() * 1 - 0.5;
-        this.speedY = Math.random() * -1 - 0.5;
-        this.color = Math.random() > 0.5 ? 'rgba(255, 107, 53, 0.4)' : 'rgba(255, 255, 255, 0.2)';
-      }
-      update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        if (this.y < 0) {
-          this.y = canvas.height;
-          this.x = Math.random() * canvas.width;
-        }
-      }
-      draw() {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    const particles = [];
+    const particleCount = 50;
 
     for (let i = 0; i < particleCount; i++) {
-      particles.push(new Particle());
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2 + 1,
+            speedX: (Math.random() - 0.5) * 1,
+            speedY: (Math.random() - 0.5) * 1,
+            color: Math.random() > 0.5 ? 'rgba(255, 107, 53, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+        });
     }
 
-    let animationFrameId;
     const animate = () => {
+      requestAnimationFrame(animate);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       particles.forEach(p => {
-        p.update();
-        p.draw();
+          p.x += p.speedX;
+          p.y += p.speedY;
+
+          if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+          if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
       });
-      animationFrameId = requestAnimationFrame(animate);
     };
     animate();
 
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-    };
+    }
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Counter animation
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let startTimestamp = null;
-    const duration = 2000;
-    const finalValue = 40000000;
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-40 z-0" />;
+};
 
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      // easeOutExpo
-      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-      setCount(Math.floor(easeProgress * finalValue));
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
+const AnimatedCounter = ({ end, duration, prefix = '', suffix = '' }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let startTime = null;
+    const animateCount = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const ratio = Math.min(progress / duration, 1);
+      
+      // Ease out quad
+      const easeOut = ratio * (2 - ratio);
+      setCount(Math.floor(easeOut * end));
+      
+      if (ratio < 1) {
+        requestAnimationFrame(animateCount);
       }
     };
-    window.requestAnimationFrame(step);
-  }, []);
+    requestAnimationFrame(animateCount);
+  }, [end, duration]);
+
+  // Indian number format (1,00,000)
+  const formattedCount = count.toLocaleString('en-IN');
+  return <span className="font-bold text-saffron">{prefix}{formattedCount}{suffix}</span>;
+};
+
+export default function Landing() {
+  const navigate = useNavigate();
+
+  const problemCards = [
+    { stat: "90%", desc: "of social initiatives fail due to execution gaps", icon: Target },
+    { stat: "85%", desc: "of affected youth receive no mentorship", icon: BookOpen },
+    { stat: "₹25L", desc: "IIM costs ₹25 lakhs. UdyamPath costs ₹0.", icon: Award }
+  ];
+
+  const steps = [
+    { title: "Validate Idea", desc: "Get an AI feasibility score map" },
+    { title: "Case Study Room", desc: "Enter realistic startup scenarios" },
+    { title: "Learn & Improve", desc: "Build strategic thinking skills" },
+    { title: "Track Growth", desc: "Download action-oriented reports" }
+  ];
 
   return (
-    <div className="min-h-screen bg-[#1a1a2e] relative overflow-hidden flex flex-col pt-16 text-white font-inter">
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0 opacity-80" />
+    <div className="relative min-h-screen bg-navy overflow-hidden">
+      <ParticleBackground />
       
-      <main className="flex-1 relative z-10">
-        {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <div className="mb-6 inline-block glass-strong px-6 py-2 rounded-full border border-white/10 glow-saffron-text">
-            <span className="text-saffron-500 font-bold text-lg">
-              {count.toLocaleString('en-IN')} students.
-            </span>
-            <span className="text-white/60 ml-2">Less than 1% get real guidance.</span>
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-poppins font-black mb-6 leading-tight max-w-4xl mx-auto tracking-tight drop-shadow-lg">
-            Your Startup Journey <span className="gradient-text glow-saffron-text">Starts Here</span>
-          </h1>
-          
-          <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto font-medium">
-            UdyamPath acts as your AI co-founder, combining the experiential learning of Monopoly with personalized mentorship in 4 Indian languages.
+      {/* HERO SECTION */}
+      <section className="relative z-10 pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="bg-surface/50 border border-saffron/20 rounded-full px-6 py-2 mb-8 backdrop-blur-md"
+        >
+          <p className="text-muted text-sm md:text-base font-inter">
+            <AnimatedCounter end={40000000} duration={2500} /> students. Less than 1% get real guidance.
           </p>
+        </motion.div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button 
-              onClick={() => navigate('/onboarding')}
-              className="btn-primary flex items-center gap-2 text-lg hover:scale-105 active:scale-95 group relative shadow-[0_0_20px_rgba(255,107,53,0.4)]"
-            >
-              <span className="absolute inset-0 w-full h-full rounded-xl bg-white/20 animate-ping opacity-20"></span>
-              {t.startButton}
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button className="btn-secondary flex items-center gap-2 text-lg border-[#FF6B35]/50 text-[#FF6B35] hover:bg-[#FF6B35]/10">
-              <Play className="w-5 h-5 fill-current" />
-              {t.watchDemo}
-            </button>
-          </div>
-        </div>
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-5xl md:text-7xl font-poppins font-extrabold text-white leading-tight mb-6 max-w-5xl tracking-tight"
+        >
+          The <span className="text-saffron">IIM Case Study Room</span>.<br />For Every Indian Entrepreneur.
+        </motion.h1>
 
-        {/* Problem Cards */}
-        <div className="max-w-6xl mx-auto px-4 py-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card glass-strong hover:-translate-y-2 transition-transform duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#e94560]/20 flex items-center justify-center mb-4 text-[#e94560]">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <h3 className="font-poppins font-bold text-2xl mb-2">78%</h3>
-            <p className="text-white/70 text-sm">Of founders launch without proper validation guidance.</p>
-          </div>
-          
-          <div className="card glass-strong hover:-translate-y-2 transition-transform duration-300">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
-              <Globe className="w-6 h-6" />
-            </div>
-            <h3 className="font-poppins font-bold text-2xl mb-2">60%</h3>
-            <p className="text-white/70 text-sm">Struggle with English-only resources and language barriers.</p>
-          </div>
-          
-          <div className="card glass-strong hover:-translate-y-2 transition-transform duration-300">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 text-purple-400">
-              <HeartPulse className="w-6 h-6" />
-            </div>
-            <h3 className="font-poppins font-bold text-2xl mb-2">72%</h3>
-            <p className="text-white/70 text-sm">Experience early burnout due to lack of emotional support.</p>
-          </div>
-        </div>
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="text-xl md:text-2xl text-muted font-inter max-w-3xl mb-12"
+        >
+          Real-world challenges. Personalized guidance. Your language. Free.
+        </motion.p>
 
-        {/* How It Works */}
-        <div className="max-w-5xl mx-auto px-4 py-20">
-          <h2 className="text-3xl font-poppins font-bold text-center mb-16">How It Works</h2>
-          <div className="relative">
-            {/* Connecting Line */}
-            <div className="absolute top-1/2 left-0 w-full h-1 bg-white/10 -translate-y-1/2 hidden md:block rounded-full">
-              <div className="h-full bg-gradient-to-r from-[#FF6B35] to-[#FFD700] rounded-full w-3/4 animate-pulse"></div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
-              {[
-                { step: 1, title: 'Validate Option', desc: 'Describe your idea and get an AI validation report.' },
-                { step: 2, title: 'Choose Module', desc: 'Target your weakest areas with tailored modules.' },
-                { step: 3, title: 'Simulate Strategy', desc: 'Interact with dynamic, gamified real-world scenarios.' },
-                { step: 4, title: 'Review Report', desc: 'Get deep insights and a personalized PDF report.' }
-              ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center text-center bg-[#1a1a2e] p-4 rounded-xl shadow-2xl border border-white/5">
-                  <div className="w-14 h-14 rounded-full bg-[#16213e] flex items-center justify-center font-poppins font-bold text-xl mb-4 border-2 border-[#FF6B35] shadow-[0_0_15px_rgba(255,107,53,0.3)] text-[#FF6B35]">
-                    {item.step}
-                  </div>
-                  <h4 className="font-bold text-lg mb-2">{item.title}</h4>
-                  <p className="text-sm text-white/50">{item.desc}</p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto"
+        >
+          <button onClick={() => navigate('/onboarding')} className="btn-primary text-lg flex items-center justify-center gap-2 group">
+            Start My Journey
+            <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+          <button className="btn-ghost flex items-center justify-center gap-2 group text-lg bg-surface/30 backdrop-blur-md">
+            <PlayCircle className="w-5 h-5" />
+            Watch Demo
+          </button>
+        </motion.div>
+      </section>
+
+      {/* PROBLEM CARDS */}
+      <section className="relative z-10 py-16 px-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {problemCards.map((card, idx) => {
+            const Icon = card.icon;
+            return (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: idx * 0.2 }}
+                className="glass-card p-8 hover-glow group"
+              >
+                <div className="w-14 h-14 rounded-full bg-saffron/10 flex items-center justify-center mb-6 group-hover:bg-saffron/20 transition-colors">
+                  <Icon className="w-7 h-7 text-saffron" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-4xl font-poppins font-bold text-white mb-2">{card.stat}</h3>
+                <p className="text-muted font-inter leading-relaxed">{card.desc}</p>
+              </motion.div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-5xl font-poppins font-bold text-white mb-4">How UdyamPath Works</h2>
+          <p className="text-muted text-lg max-w-2xl mx-auto">A completely personalized journey mimicking the intensity of real-world incubators.</p>
+        </div>
+
+        <div className="relative">
+          {/* Connecting line */}
+          <div className="hidden md:block absolute top-[28px] left-[10%] right-[10%] h-[2px] bg-white/10 z-0">
+             <motion.div 
+               initial={{ width: 0 }}
+               whileInView={{ width: '100%' }}
+               viewport={{ once: true }}
+               transition={{ duration: 1.5, ease: "easeInOut" }}
+               className="h-full bg-saffron origin-left"
+             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+            {steps.map((step, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.3 }}
+                className="flex flex-col items-center text-center"
+              >
+                <div className="w-14 h-14 rounded-full bg-surface border-2 border-saffron flex items-center justify-center text-saffron font-bold text-xl mb-6 shadow-saffron-glow">
+                  {idx + 1}
+                </div>
+                <h4 className="text-xl font-poppins font-bold text-white mb-2">{step.title}</h4>
+                <p className="text-sm text-muted">{step.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </main>
+      </section>
 
-      <footer className="border-t border-white/10 py-8 text-center text-white/40 text-sm relative z-10">
-        <p>Built for Bharat. Built with ❤️ at GDG Hackathon.</p>
+      {/* FOOTER */}
+      <footer className="relative z-10 border-t border-white/10 mt-12 py-8 text-center text-muted font-inter text-sm bg-surface/50">
+        <p>Built for Bharat. Built with ❤️ at GDG on Campus CVR</p>
       </footer>
     </div>
   );

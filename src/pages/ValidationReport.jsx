@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
-import { validateIdea } from '../services/aiService';
-import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { Target, Users, Globe, Settings, ArrowRight, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import useOpenAI from '../hooks/useOpenAI';
+import ScoreRing from '../components/ScoreRing';
+import { AlertTriangle, CheckCircle, HelpCircle, ArrowRight } from 'lucide-react';
 
 export default function ValidationReport() {
-  const navigate = useNavigate();
   const { state, updateState } = useAppContext();
-  const [report, setReport] = useState(state.validationReport);
+  const navigate = useNavigate();
+  const { generateJSON } = useOpenAI();
   const [loading, setLoading] = useState(!state.validationReport);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!state.idea) {
@@ -18,178 +19,177 @@ export default function ValidationReport() {
       return;
     }
 
-    if (!report) {
-      generateReport();
+    if (!state.validationReport && !error) {
+      const fetchValidation = async () => {
+        try {
+          const prompt = `Analyze this social startup idea for the Indian market.
+Idea: ${state.idea}. Founder city: ${state.user?.city || 'India'}. Stage: ${state.user?.stage || 'Idea'}.
+Return ONLY this JSON:
+{
+  "problemValidation": "YES" | "PARTIALLY" | "NEEDS RESEARCH",
+  "validationReason": string (2 sentences, India-specific),
+  "targetAudience": string (specific Indian demographic),
+  "marketSize": string (Indian numbers, e.g. '4.2 crore students'),
+  "existingSolutions": string (Indian competitors/alternatives),
+  "gap": string (what's missing that user's idea fills),
+  "uniquenessScore": number (0-100),
+  "feasibilityScore": number (0-100),
+  "impactStatement": string ('Your idea could impact X lakh people in India'),
+  "suggestedModules": string[] (top 3 module names most relevant to this idea),
+  "firstChallenge": string (most urgent thing this founder needs to learn)
+}`;
+          const result = await generateJSON(prompt, 0.7);
+          updateState({ validationReport: result });
+        } catch (err) {
+          setError('Failed to generate validation report. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchValidation();
     }
-  }, []);
+  }, [state.idea, state.validationReport, error]); // eslint-disable-line
 
-  const generateReport = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await validateIdea({
-        idea: state.idea,
-        language: state.language,
-        location: state.user.city || 'India',
-        budget: state.user.budget || 100000,
-        sector: 'Social Enterprise',
-        stage: state.user.stage
-      });
-      // the new prompt returns { problemValidity, targetAudience, marketSize, ...}
-      // exactly as specified
-      setReport(data);
-      updateState({ validationReport: data });
-    } catch (err) {
-      console.error(err);
-      setError('Failed to analyze the idea. Please verify your Gemini API key in the .env file and your internet connection.');
-    } finally {
-       setLoading(false);
-    }
-  };
-
-  const getBadgeColor = (score) => {
-    if (score >= 80) return 'text-[#0f9b58] bg-[#0f9b58]/10 border-[#0f9b58]/30';
-    if (score >= 50) return 'text-[#FFD700] bg-[#FFD700]/10 border-[#FFD700]/30';
-    return 'text-[#e94560] bg-[#e94560]/10 border-[#e94560]/30';
-  };
-
-  const ScoreRing = ({ score, label, color }) => (
-    <div className="flex flex-col items-center justify-center p-6 rounded-2xl glass border-white/10 hover:border-white/30 transition-all duration-300">
-      <div className="w-32 h-32 relative mb-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={10} data={[{ name: 'L1', value: score, fill: color }]} startAngle={90} endAngle={-270}>
-            <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-            <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} clockWise dataKey="value" cornerRadius={10} animationDuration={1000} />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center font-poppins font-black text-3xl text-white drop-shadow-lg">
-          {score}
-        </div>
-      </div>
-      <span className="font-bold text-sm text-white/70 uppercase tracking-widest">{label}</span>
-      <span className="text-[10px] text-white/40 mt-1 pb-1">out of 100</span>
-    </div>
-  );
+  if (!state.idea) return null;
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-24 pb-12 px-4 flex flex-col items-center justify-center text-center">
-        <Loader2 className="w-12 h-12 text-[#FF6B35] animate-spin mb-4" />
-        <h2 className="text-2xl font-poppins font-bold">Structuring the AI Report...</h2>
-        <p className="text-white/50 mt-2">Checking feasibility and uniqueness across India.</p>
+      <div className="bg-navy min-h-screen flex flex-col items-center justify-center text-center p-6">
+        <div className="w-16 h-16 border-4 border-saffron/30 border-t-saffron rounded-full animate-spin mb-6"></div>
+        <p className="text-xl text-white font-poppins animate-pulse">Consulting the Udyam Guru...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen pt-24 flex flex-col items-center justify-center px-4">
-         <AlertTriangle className="w-16 h-16 text-[#e94560] mb-4" />
-         <p className="text-xl mb-6 text-center max-w-md">{error}</p>
-         <button onClick={generateReport} className="btn-primary flex items-center gap-2">
-           <RefreshCw className="w-5 h-5"/> Retry Connection
-         </button>
+      <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6">
+        <div className="glass-card p-8 border-accentRed/50 text-center">
+          <AlertTriangle className="w-12 h-12 text-accentRed mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Analysis Failed</h2>
+          <p className="text-muted mb-6">{error}</p>
+          <button onClick={() => setError('')} className="btn-primary">Retry</button>
+        </div>
       </div>
     );
   }
 
-  if (!report) return null;
+  const report = state.validationReport;
+
+  const getValidationBadge = (status) => {
+    switch(status) {
+      case 'YES': 
+        return <span className="bg-successGreen/20 text-successGreen px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle className="w-4 h-4"/> REAL PROBLEM</span>;
+      case 'PARTIALLY': 
+        return <span className="bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><AlertTriangle className="w-4 h-4"/> PARTIALLY VALIDATED</span>;
+      case 'NEEDS RESEARCH': 
+        return <span className="bg-accentRed/20 text-accentRed px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><HelpCircle className="w-4 h-4"/> NEEDS RESEARCH</span>;
+      default: return null;
+    }
+  };
+
+  const stagger = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1, y: 0,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+  };
 
   return (
-    <div className="min-h-[100vh] bg-[#1a1a2e] pt-24 pb-24 px-4 font-inter text-white overflow-x-hidden">
-      <div className="max-w-4xl mx-auto">
+    <div className="bg-navy min-h-screen pt-24 pb-16 px-6">
+      <div className="max-w-6xl mx-auto">
         
-        {/* Emotional Impact Hero */}
-        <div className="gradient-primary p-6 md:p-8 rounded-3xl shadow-[0_10px_40px_rgba(255,107,53,0.2)] mb-8 relative overflow-hidden animate-slide-up" style={{animationDelay: '100ms'}}>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <h1 className="text-3xl md:text-5xl font-poppins font-black mb-4 tracking-tight drop-shadow-md relative z-10 leading-tight">
-            {report.emotionalImpact?.message || "Your idea can change lives."}
+        {/* HERO SECTION */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-gradient-to-r from-saffron/20 to-surface border border-saffron/30 rounded-2xl p-8 mb-10 shadow-saffron-glow relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-saffron/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+          <h1 className="text-3xl md:text-5xl font-poppins font-extrabold text-white mb-4 relative z-10">
+            {report.impactStatement}
           </h1>
-          <p className="text-white/90 text-sm md:text-lg font-medium max-w-2xl relative z-10 uppercase tracking-widest bg-black/20 inline-block px-4 py-1.5 rounded-full">
-            Potential Audience: {report.emotionalImpact?.comparison || report.targetAudience?.size}
+          <p className="text-lg text-saffron font-medium relative z-10">
+            Based on the Indian market dynamics for {state.user?.city || 'your region'}.
           </p>
-        </div>
+        </motion.div>
 
-        {/* The 6 Information Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          
-          {/* Card 1: Problem Validation */}
-          <div className="glass p-6 rounded-2xl border-white/10 animate-slide-up flex flex-col" style={{animationDelay: '150ms'}}>
-             <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/5 rounded-xl"><Target className="w-6 h-6 text-[#1cb0f6]"/></div>
-                <h3 className="font-poppins font-bold text-xl">Problem Validity</h3>
-             </div>
-             <p className="text-white/80 flex-1 leading-relaxed mb-4">{report.problemValidity?.description}</p>
-             <div className={`mt-auto w-fit px-4 py-1.5 rounded-lg border font-bold text-sm ${getBadgeColor(report.problemValidity?.score || 0)}`}>
-               Score: {report.problemValidity?.score}/100
-             </div>
+        {/* BENTO GRID */}
+        <motion.div 
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+        >
+          {/* Problem Card */}
+          <motion.div variants={item} className="glass-card p-6 md:col-span-2 relative">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-poppins font-bold text-white">Problem Validation</h3>
+              {getValidationBadge(report.problemValidation)}
+            </div>
+            <p className="text-muted leading-relaxed font-inter text-base">
+              {report.validationReason}
+            </p>
+          </motion.div>
+
+          {/* Scores Panel */}
+          <motion.div variants={item} className="glass-card p-6 flex flex-row md:flex-col justify-around items-center border-l-4 border-l-saffron">
+             <ScoreRing score={report.uniquenessScore} label="Uniqueness" color="#FF6B35" />
+             <ScoreRing score={report.feasibilityScore} label="Feasibility" color="#0f9b58" delay={400} />
+          </motion.div>
+
+          {/* Target Audience */}
+          <motion.div variants={item} className="glass-card p-6">
+            <h3 className="text-sm font-bold text-saffron mb-2 uppercase tracking-wide">Target Audience</h3>
+            <p className="text-white font-medium mb-4">{report.targetAudience}</p>
+            <h3 className="text-sm font-bold text-saffron mb-2 uppercase tracking-wide">Market Size</h3>
+            <p className="text-white font-bold text-2xl">{report.marketSize}</p>
+          </motion.div>
+
+          {/* Existing Solutions */}
+          <motion.div variants={item} className="glass-card p-6">
+            <h3 className="text-sm font-bold text-muted mb-2 uppercase tracking-wide">Existing Alternatives</h3>
+            <p className="text-white font-medium">{report.existingSolutions}</p>
+          </motion.div>
+
+          {/* The Gap */}
+          <motion.div variants={item} className="glass-card p-6 bg-surface/80 border-saffron/20 border">
+             <h3 className="text-sm font-bold text-saffron mb-2 uppercase tracking-wide">Your Unique Gap</h3>
+             <p className="text-white italic leading-relaxed">"{report.gap}"</p>
+          </motion.div>
+        </motion.div>
+
+        {/* ACTION SECTION */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="glass-card p-8 border-t border-t-saffron flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-6"
+        >
+          <div>
+            <h3 className="text-2xl font-poppins font-bold text-white mb-2">Recommended Start:</h3>
+            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+              {report.suggestedModules?.map((m, i) => (
+                <span key={i} className="bg-saffron/20 border border-saffron text-saffron px-3 py-1 rounded-full text-sm font-bold">
+                  {m}
+                </span>
+              ))}
+            </div>
+            <p className="text-sm text-muted mt-3">Urgent Focus: {report.firstChallenge}</p>
           </div>
 
-          {/* Card 2: Target Audience */}
-          <div className="glass p-6 rounded-2xl border-white/10 animate-slide-up flex flex-col" style={{animationDelay: '200ms'}}>
-             <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/5 rounded-xl"><Users className="w-6 h-6 text-[#FFD700]"/></div>
-                <h3 className="font-poppins font-bold text-xl">Target Audience</h3>
-             </div>
-             <div className="space-y-4">
-               <div>
-                 <span className="text-[#FFD700] text-xs font-bold uppercase tracking-widest block mb-1">Primary</span>
-                 <p className="text-white/90 text-sm">{report.targetAudience?.primary}</p>
-               </div>
-               <div>
-                 <span className="text-white/40 text-xs font-bold uppercase tracking-widest block mb-1">Secondary</span>
-                 <p className="text-white/70 text-sm">{report.targetAudience?.secondary}</p>
-               </div>
-             </div>
-          </div>
-
-          {/* Card 3: Market Size */}
-          <div className="glass p-6 rounded-2xl border-white/10 animate-slide-up flex flex-col" style={{animationDelay: '250ms'}}>
-             <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/5 rounded-xl"><Globe className="w-6 h-6 text-[#0f9b58]"/></div>
-                <h3 className="font-poppins font-bold text-xl">Market Size</h3>
-             </div>
-             <div className="grid grid-cols-2 gap-4 mb-4">
-                 <div className="bg-white/5 p-3 rounded-lg border border-white/5"><span className="text-white/40 text-[10px] uppercase font-bold tracking-widest">TAM</span><br/><span className="font-bold text-lg">{report.marketSize?.tam}</span></div>
-                 <div className="bg-white/5 p-3 rounded-lg border border-white/5"><span className="text-white/40 text-[10px] uppercase font-bold tracking-widest">SAM</span><br/><span className="font-bold text-lg">{report.marketSize?.sam}</span></div>
-             </div>
-             <p className="text-white/60 text-xs leading-relaxed">{report.marketSize?.description}</p>
-          </div>
-
-          {/* Card 4: Existing Solutions */}
-          <div className="glass p-6 rounded-2xl border-white/10 animate-slide-up flex flex-col" style={{animationDelay: '300ms'}}>
-             <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-white/5 rounded-xl"><Settings className="w-6 h-6 text-[#e94560]"/></div>
-                <h3 className="font-poppins font-bold text-xl">Existing Landscape</h3>
-             </div>
-             <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                {report.existingSolutions?.map((sol, i) => (
-                  <div key={i} className="pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                     <span className="font-bold text-[#e94560] block mb-1 text-sm">{sol.name}</span>
-                     <p className="text-white/70 text-xs leading-relaxed">Gap: {sol.gap}</p>
-                  </div>
-                ))}
-                {(!report.existingSolutions || report.existingSolutions.length === 0) && <p className="text-white/50 text-sm">No direct dominant alternatives identified.</p>}
-             </div>
-          </div>
-
-        </div>
-
-        {/* Card 5 & 6: Score Rings */}
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-6 mb-12 animate-slide-up" style={{animationDelay: '350ms'}}>
-           <ScoreRing score={report.uniquenessScore} label="Uniqueness" color="#FF6B35" />
-           <ScoreRing score={report.overallScore || 80} label="Feasibility" color="#0f9b58" />
-        </div>
-
-        {/* CTA */}
-        <div className="flex justify-center animate-slide-up" style={{animationDelay: '400ms'}}>
-          <button 
-            onClick={() => navigate('/modules')}
-            className="btn-primary flex items-center gap-3 text-xl px-12 py-5 rounded-2xl shadow-[0_0_30px_rgba(255,107,53,0.3)] hover:scale-105 active:scale-95 transition-all"
-          >
-            Start Your Simulation <ArrowRight className="w-6 h-6" />
+          <button onClick={() => navigate('/dashboard')} className="btn-primary flex items-center gap-2 group whitespace-nowrap text-lg shadow-saffron-glow animate-pulse-slow">
+            Enter Dashboard
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
-        </div>
+        </motion.div>
 
       </div>
     </div>

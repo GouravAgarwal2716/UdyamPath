@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
-import { strings } from '../utils/langStrings';
-import { ChevronRight, ChevronLeft, MapPin, Building2, Users, IndianRupee, Loader2 } from 'lucide-react';
 
-const FEAR_OPTIONS = [
+const languages = [
+  { code: 'en', label: 'English', native: '🇮🇳' },
+  { code: 'te', label: 'Telugu', native: 'తె' },
+  { code: 'hi', label: 'Hindi', native: 'हि' },
+  { code: 'ta', label: 'Tamil', native: 'த' }
+];
+
+const stages = ['Idea', 'Validation', 'MVP', 'Growth'];
+const teamSizes = ['Solo', '2-3', '4-5', '6+'];
+const fears = [
+  'Select your biggest fear',
   'Failure',
   'Running out of money',
   'Family pressure',
@@ -12,230 +21,331 @@ const FEAR_OPTIONS = [
   'Competition'
 ];
 
-const STAGES = ['Idea', 'Validation', 'MVP', 'Growth'];
-const TEAM_SIZES = ['Solo', '2-3', '4-5', '6+'];
-
-const LANGUAGES = [
-  { code: 'en', native: 'English', desc: 'Proceed in English', flag: '🇬🇧' },
-  { code: 'hi', native: 'हिंदी', desc: 'हिंदी में आगे बढ़ें', flag: '🇮🇳' },
-  { code: 'te', native: 'తెలుగు', desc: 'తెలుగులో కొనసాగండి', flag: '🇮🇳' },
-  { code: 'ta', native: 'தமிழ்', desc: 'தமிழில் தொடரவும்', flag: '🇮🇳' }
-];
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const { state, updateState, updateUser } = useAppContext();
+  
   const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    language: state.language || 'en',
+    idea: state.idea || '',
+    city: state.user?.city || '',
+    budget: 0,
+    stage: state.user?.stage || 'Idea',
+    teamSize: state.user?.teamSize || 'Solo',
+    name: state.user?.name || '',
+    age: state.user?.age || '',
+    college: state.user?.college || '',
+    fear: state.user?.fear || fears[0]
+  });
+
   const [loading, setLoading] = useState(false);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+  const loadingMessages = [
+    "Analyzing your idea...",
+    "Mapping to Indian market...",
+    "Preparing your learning path...",
+    "Building your case study room..."
+  ];
 
-  const t = strings[state.language] || strings['en'];
-  const loadingMessages = [t.analyzing, t.checking, t.preparing];
+  const handleNext = () => setStep(s => Math.min(s + 1, 4));
+  const handlePrev = () => setStep(s => Math.max(s - 1, 1));
 
-  // Local drafted state before saving to global (or save to global continuously)
-  const [localIdea, setIdea] = useState(state.idea || '');
-  const [localUser, setLocalUser] = useState(state.user || {});
-  const [budget, setBudget] = useState(100000);
-
-  const handleNext = () => {
-    if (step < 4) setStep(step + 1);
-    else handleSubmit();
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
-    updateState({ idea: localIdea });
-    updateUser({ ...localUser, budget });
-    
-    setLoading(true);
-    let msgInterval = setInterval(() => {
-      setLoadingMsgIdx(prev => (prev + 1) % loadingMessages.length);
-    }, 2000);
+    updateState({ language: formData.language, idea: formData.idea });
+    updateUser({
+      name: formData.name,
+      age: formData.age,
+      city: formData.city,
+      college: formData.college,
+      stage: formData.stage,
+      teamSize: formData.teamSize,
+      fear: formData.fear,
+      budget: formData.budget
+    });
 
-    setTimeout(() => {
-      clearInterval(msgInterval);
-      navigate('/validate');
-    }, 6000);
+    setLoading(true);
   };
 
-  const renderLoading = () => (
-    <div className="absolute inset-0 bg-[#1a1a2e] z-50 flex flex-col items-center justify-center text-center animate-fade-in">
-      <div className="relative mb-8">
-        <div className="w-24 h-24 rounded-full border-4 border-white/5 mx-auto"></div>
-        <div className="absolute inset-0 rounded-full border-4 border-[#FF6B35] border-t-transparent animate-spin glow-saffron"></div>
-        <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-[#FF6B35]" />
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setLoadingMsgIdx(i => {
+          if (i === loadingMessages.length - 1) {
+            clearInterval(interval);
+            navigate('/validate'); // Go to validation report
+            return i;
+          }
+          return i + 1;
+        });
+      }, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [loading, navigate, loadingMessages.length]);
+
+  const slideVariants = {
+    enter: (direction) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (direction) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0 }),
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 border-4 border-saffron/30 border-t-saffron rounded-full animate-spin mb-8 shadow-saffron-glow"></div>
+        <AnimatePresence mode="wait">
+          <motion.h2
+            key={loadingMsgIdx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-2xl font-poppins text-white"
+          >
+            {loadingMessages[loadingMsgIdx]}
+          </motion.h2>
+        </AnimatePresence>
       </div>
-      <h2 className="text-2xl font-poppins font-bold text-white mb-2 tracking-wide transition-opacity duration-500">
-        {loadingMessages[loadingMsgIdx]}
-      </h2>
-      <div className="flex gap-2 mt-4 justify-center">
-        {loadingMessages.map((_, i) => (
-          <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === loadingMsgIdx ? 'w-8 bg-[#FF6B35]' : 'w-4 bg-white/20'}`} />
-        ))}
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#1a1a2e] pt-24 pb-12 px-4 relative overflow-hidden font-inter flex flex-col items-center">
-      {loading && renderLoading()}
-
-      {/* Progress Bar */}
-      <div className="w-full max-w-2xl mx-auto mb-12">
-        <div className="flex justify-between mb-2">
-          {[1,2,3,4].map(s => (
-            <div key={s} className="flex-1 flex flex-col items-center relative">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 font-bold transition-all duration-500 ${
-                step >= s ? 'bg-[#FF6B35] text-white shadow-[0_0_15px_rgba(255,107,53,0.4)]' : 'bg-[#16213e] text-white/40 border-2 border-white/10'
-              }`}>
-                {s}
-              </div>
-              {s !== 4 && <div className={`absolute top-5 left-1/2 w-full h-[2px] -z-0 transition-all duration-500 ${step > s ? 'bg-[#FF6B35]' : 'bg-white/10'}`} />}
-            </div>
-          ))}
-        </div>
+    <div className="bg-navy min-h-screen flex flex-col items-center pt-24 pb-12 px-4 relative overflow-hidden">
+      
+      {/* PROGRESS BAR */}
+      <div className="w-full max-w-2xl fixed top-0 left-1/2 -translate-x-1/2 h-2 bg-surface z-50">
+        <div 
+          className="progress-bar-fill"
+          style={{ width: `${(step / 4) * 100}%` }}
+        />
       </div>
 
-      <div className="w-full max-w-2xl mx-auto">
-        {/* Step 1: Language */}
-        {step === 1 && (
-          <div className="animate-slide-up">
-            <h2 className="text-3xl font-poppins font-bold text-white mb-2 text-center textShadow">Choose Your Language</h2>
-            <p className="text-white/60 text-center mb-8">UdyamPath adapts completely to how you speak.</p>
-            <div className="grid grid-cols-2 gap-4">
-              {LANGUAGES.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => { updateState({ language: lang.code }); handleNext(); }}
-                  className={`p-6 rounded-2xl glass transition-all border-2 text-left group ${state.language === lang.code ? 'border-[#FF6B35] bg-[#FF6B35]/10 shadow-[0_0_20px_rgba(255,107,53,0.3)]' : 'border-white/10 hover:border-white/30'}`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-xl font-bold font-poppins text-white">{lang.native}</h3>
-                      <p className="text-sm text-white/50">{lang.desc}</p>
-                    </div>
-                    <span className="text-3xl grayscale group-hover:grayscale-0 transition-all">{lang.flag}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="w-full max-w-2xl relative">
+        <div className="mb-8 flex justify-between items-center px-4">
+          <button 
+            onClick={handlePrev} 
+            className={`text-muted hover:text-white transition-colors ${step === 1 ? 'opacity-0 pointer-events-none' : ''}`}
+          >
+            ← Back
+          </button>
+          <span className="text-saffron font-bold">Step {step} of 4</span>
+        </div>
 
-        {/* Step 2: Idea */}
-        {step === 2 && (
-          <div className="animate-slide-up">
-            <h2 className="text-3xl font-poppins font-bold text-white mb-6 text-center">{t.idea} Phase</h2>
-            <textarea
-              value={localIdea}
-              onChange={(e) => setIdea(e.target.value)}
-              placeholder="Describe your social startup idea... Why does India need this? (e.g., A Whatsapp bot helping farmers get organic soil deals)"
-              className="w-full h-48 bg-[#16213e] border border-white/10 rounded-xl p-6 text-lg text-white placeholder-white/30 focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] resize-none shadow-inner transition-all"
-            />
-            <div className={`mt-3 text-right text-sm ${localIdea.length < 50 ? 'text-[#e94560]' : 'text-[#0f9b58]'}`}>
-              {localIdea.length} / 50 min chars
-            </div>
+        <div className="glass-card p-8 md:p-12 relative overflow-hidden min-h-[450px]">
+          <AnimatePresence mode="wait" custom={1}>
             
-            <div className="flex justify-between mt-8">
-              <button onClick={handleBack} className="btn-secondary flex items-center gap-2"><ChevronLeft className="w-5 h-5"/> Back</button>
-              <button 
-                onClick={handleNext} 
-                disabled={localIdea.length < 50}
-                className="btn-primary flex items-center gap-2 disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed shadow-[0_4px_15px_rgba(255,107,53,0.3)]"
-              >
-                Next <ChevronRight className="w-5 h-5"/>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Context */}
-        {step === 3 && (
-          <div className="animate-slide-up space-y-8">
-            <h2 className="text-3xl font-poppins font-bold text-white mb-6 text-center">{t.context}</h2>
-            
-            <div>
-              <label className="flex items-center gap-2 text-white/80 font-bold mb-3"><MapPin className="w-4 h-4"/> Target City / Town</label>
-              <input type="text" value={localUser.city || ''} onChange={e => setLocalUser({...localUser, city: e.target.value})} placeholder="e.g., Warangal, Tier-2" className="input-primary" />
-            </div>
-
-            <div className="glass-strong p-6 rounded-2xl border-white/10">
-              <label className="flex justify-between text-white/80 font-bold mb-4">
-                <span className="flex items-center gap-2"><IndianRupee className="w-4 h-4"/> Starting Budget</span>
-                <span className="text-[#FF6B35] text-xl font-poppins">₹{(budget).toLocaleString('en-IN')}</span>
-              </label>
-              <input 
-                type="range" min="0" max="500000" step="5000" 
-                value={budget} onChange={e => setBudget(Number(e.target.value))} 
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#FF6B35]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="flex items-center gap-2 text-white/80 font-bold mb-3"><Building2 className="w-4 h-4"/> Current Stage</label>
-                <select value={localUser.stage || 'Idea'} onChange={e => setLocalUser({...localUser, stage: e.target.value})} className="input-primary appearance-none">
-                  {STAGES.map(s => <option key={s} value={s} className="bg-[#1a1a2e]">{s}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-white/80 font-bold mb-3"><Users className="w-4 h-4"/> Team Size</label>
-                <div className="flex bg-white/5 border border-white/10 rounded-xl overflow-hidden p-1">
-                   {TEAM_SIZES.map(s => (
-                     <button key={s} onClick={() => setLocalUser({...localUser, teamSize: s})} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${localUser.teamSize === s ? 'bg-[#FF6B35] text-white shadow-md' : 'text-white/50 hover:text-white'}`}>{s}</button>
-                   ))}
+            {step === 1 && (
+              <motion.div key="step1" {...slideAnimation(1)} className="flex flex-col h-full">
+                <h2 className="text-3xl font-poppins font-bold text-white mb-2">Choose Your Language</h2>
+                <p className="text-muted mb-8">UdyamPath adapts to the language you think in.</p>
+                
+                <div className="grid grid-cols-2 gap-4 flex-1">
+                  {languages.map(l => (
+                    <button
+                      key={l.code}
+                      onClick={() => handleChange('language', l.code)}
+                      className={`p-6 rounded-xl flex flex-col items-center justify-center gap-3 transition-all duration-300 border ${
+                        formData.language === l.code 
+                          ? 'border-saffron bg-saffron/20 shadow-saffron-glow transform scale-[1.02]' 
+                          : 'border-white/10 bg-surface/50 hover:bg-surface'
+                      }`}
+                    >
+                      <span className="text-4xl">{l.native}</span>
+                      <span className="font-bold text-white">{l.label}</span>
+                    </button>
+                  ))}
                 </div>
-              </div>
-            </div>
+                
+                <div className="mt-8 flex justify-end">
+                  <button onClick={handleNext} className="btn-primary">Next →</button>
+                </div>
+              </motion.div>
+            )}
 
-            <div className="flex justify-between mt-8">
-              <button onClick={handleBack} className="btn-secondary flex items-center gap-2"><ChevronLeft className="w-5 h-5"/> Back</button>
-              <button onClick={handleNext} className="btn-primary flex items-center gap-2">Next <ChevronRight className="w-5 h-5"/></button>
-            </div>
-          </div>
-        )}
+            {step === 2 && (
+              <motion.div key="step2" {...slideAnimation(1)} className="flex flex-col h-full">
+                <h2 className="text-3xl font-poppins font-bold text-white mb-2">What are you building?</h2>
+                <p className="text-muted mb-8">Describe your social startup idea in detail.</p>
+                
+                <div className="flex-1 flex flex-col">
+                  <textarea 
+                    value={formData.idea}
+                    onChange={(e) => handleChange('idea', e.target.value)}
+                    placeholder="e.g. A platform to teach coding to rural girls in Telangana using low-bandwidth videos..."
+                    className="w-full bg-surface/80 border border-white/10 rounded-xl p-4 text-white focus:border-saffron focus:ring-1 focus:ring-saffron outline-none resize-none flex-1 font-inter min-h-[150px]"
+                  />
+                  <div className="flex justify-between mt-2 text-sm">
+                    <span className="text-muted">Min 50 characters required</span>
+                    <span className={`${formData.idea.length > 50 ? 'text-successGreen' : 'text-accentRed'}`}>
+                      {formData.idea.length} / 50
+                    </span>
+                  </div>
+                </div>
 
-        {/* Step 4: Profile */}
-        {step === 4 && (
-          <div className="animate-slide-up space-y-6">
-             <h2 className="text-3xl font-poppins font-bold text-white mb-6 text-center">{t.profile}</h2>
-             
-             <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-white/80 font-bold mb-2 text-sm">Your Name</label>
-                  <input type="text" value={localUser.name || ''} onChange={e => setLocalUser({...localUser, name: e.target.value})} placeholder="e.g., Rahul" className="input-primary" />
-               </div>
-               <div>
-                  <label className="block text-white/80 font-bold mb-2 text-sm">Age</label>
-                  <input type="number" value={localUser.age || ''} onChange={e => setLocalUser({...localUser, age: e.target.value})} placeholder="21" className="input-primary" />
-               </div>
-             </div>
+                <div className="mt-8 flex justify-end gap-4">
+                  <button onClick={handlePrev} className="btn-ghost hidden sm:block">Back</button>
+                  <button 
+                    onClick={handleNext} 
+                    disabled={formData.idea.length < 50}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-             <div>
-                <label className="block text-white/80 font-bold mb-2 text-sm">College / Organization</label>
-                <input type="text" value={localUser.college || ''} onChange={e => setLocalUser({...localUser, college: e.target.value})} placeholder="NIT Warangal" className="input-primary" />
-             </div>
+            {step === 3 && (
+              <motion.div key="step3" {...slideAnimation(1)} className="flex flex-col h-full">
+                <h2 className="text-3xl font-poppins font-bold text-white mb-8">Your Context</h2>
+                
+                <div className="space-y-6 flex-1">
+                  <div>
+                    <label className="block text-sm text-muted mb-2">City/Town</label>
+                    <input 
+                      type="text" 
+                      value={formData.city}
+                      onChange={(e) => handleChange('city', e.target.value)}
+                      className="w-full bg-surface border border-white/10 rounded-lg p-3 text-white focus:border-saffron outline-none"
+                      placeholder="e.g. Nizamabad"
+                    />
+                  </div>
 
-             <div className="pt-4">
-                <label className="block text-white/80 font-bold mb-2 text-sm text-[#FF6B35]">Your Biggest Fear</label>
-                <p className="text-white/40 text-xs mb-4">Udyam Guru will tailor mentorship to help you overcome this.</p>
-                <select value={localUser.fear || 'Failure'} onChange={e => setLocalUser({...localUser, fear: e.target.value})} className="input-primary border-[#FF6B35]/30">
-                  {FEAR_OPTIONS.map(f => <option key={f} value={f} className="bg-[#1a1a2e]">{f}</option>)}
-                </select>
-             </div>
+                  <div>
+                    <label className="flex justify-between text-sm text-muted mb-2">
+                      <span>Available Budget</span>
+                      <span className="text-saffron font-bold">₹{formData.budget.toLocaleString('en-IN')}</span>
+                    </label>
+                    <input 
+                      type="range" 
+                      min="0" max="500000" step="10000"
+                      value={formData.budget}
+                      onChange={(e) => handleChange('budget', parseInt(e.target.value))}
+                      className="w-full accent-saffron"
+                    />
+                  </div>
 
-             <div className="flex justify-between mt-12">
-              <button onClick={handleBack} className="btn-secondary flex items-center gap-2"><ChevronLeft className="w-5 h-5"/> Back</button>
-              <button onClick={handleNext} disabled={!localUser.name || !localUser.fear} className="btn-primary flex items-center gap-2 glow-saffron shadow-[0_8px_32px_rgba(255,107,53,0.4)] px-8">Complete Setup <ChevronRight className="w-5 h-5"/></button>
-            </div>
-          </div>
-        )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-muted mb-2">Stage</label>
+                      <select 
+                        value={formData.stage}
+                        onChange={(e) => handleChange('stage', e.target.value)}
+                        className="w-full bg-surface border border-white/10 rounded-lg p-3 text-white focus:border-saffron outline-none"
+                      >
+                        {stages.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted mb-2">Team Size</label>
+                      <div className="flex bg-surface rounded-lg p-1 border border-white/10">
+                        {teamSizes.map(size => (
+                          <button
+                            key={size}
+                            onClick={() => handleChange('teamSize', size)}
+                            className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                              formData.teamSize === size ? 'bg-saffron text-white shadow-md' : 'text-muted hover:text-white'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
+                <div className="mt-8 flex justify-end gap-4">
+                   <button 
+                    onClick={handleNext} 
+                    disabled={!formData.city}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div key="step4" {...slideAnimation(1)} className="flex flex-col h-full">
+                <h2 className="text-3xl font-poppins font-bold text-white mb-8">About You</h2>
+                
+                <div className="space-y-6 flex-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-muted mb-2">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={formData.name}
+                        onChange={(e) => handleChange('name', e.target.value)}
+                        className="w-full bg-surface border border-white/10 rounded-lg p-3 text-white focus:border-saffron outline-none"
+                        placeholder="e.g. Rahul Kumar"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted mb-2">Age</label>
+                      <input 
+                        type="number" 
+                        value={formData.age}
+                        onChange={(e) => handleChange('age', e.target.value)}
+                        className="w-full bg-surface border border-white/10 rounded-lg p-3 text-white focus:border-saffron outline-none"
+                        placeholder="22"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-muted mb-2">College or Organization</label>
+                    <input 
+                      type="text" 
+                      value={formData.college}
+                      onChange={(e) => handleChange('college', e.target.value)}
+                      className="w-full bg-surface border border-white/10 rounded-lg p-3 text-white focus:border-saffron outline-none"
+                      placeholder="e.g. CVR College of Engineering"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-saffron mb-2">What is your biggest fear?</label>
+                    <select 
+                      value={formData.fear}
+                      onChange={(e) => handleChange('fear', e.target.value)}
+                      className="w-full bg-surface border border-saffron/50 rounded-lg p-3 text-white ring-1 ring-saffron outline-none"
+                    >
+                      {fears.map(f => (
+                        <option key={f} value={f} disabled={f === fears[0]}>{f}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted mt-2 mt-1">Don't worry, your AI Coach Udyam Guru will refer to this to help you overcome it.</p>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end gap-4">
+                   <button 
+                    onClick={handleSubmit} 
+                    disabled={!formData.name || !formData.college || formData.fear === fears[0]}
+                    className="btn-primary disabled:opacity-50 animate-pulse-slow"
+                  >
+                    Enter the Room
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
 }
+
+const slideAnimation = (direction) => ({
+  initial: { opacity: 0, x: 20 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -20 },
+  transition: { duration: 0.3 }
+});

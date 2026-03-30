@@ -1,153 +1,292 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Youtube, Newspaper, Building2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { fetchNews } from '../services/newsService';
-import { getRecommendedVideos } from '../services/youtubeService';
-import { BookOpen, X, Video, FileText, Landmark, ExternalLink, Loader2 } from 'lucide-react';
+import useGNews from '../hooks/useGNews';
+import useOpenAI from '../hooks/useOpenAI';
+
+// Static fallback schemes — always show if AI fails
+const STATIC_SCHEMES = [
+  {
+    name: 'Startup India Seed Fund',
+    whatItOffers: 'Financial assistance up to ₹20 lakhs for proof of concept, prototype development, product trials, and market entry.',
+    eligibility: 'DPIIT-recognized startups incorporated within last 2 years with innovative, scalable tech solutions.',
+    applyLink: 'https://seedfund.startupindia.gov.in/'
+  },
+  {
+    name: 'PM YUVA 2.0',
+    whatItOffers: 'Mentorship + ₹6 lakh stipend over 6 months for young entrepreneurs under a national mentoring program.',
+    eligibility: 'Indian citizens aged 15-29 with a viable business concept. Applications via MyGov portal.',
+    applyLink: 'https://www.mygov.in/group-issue/pm-yuva-2-0/'
+  },
+  {
+    name: 'Atal Innovation Mission (AIM)',
+    whatItOffers: 'Access to Atal Incubation Centres, seed funding, and world-class mentorship across 50+ cities in India.',
+    eligibility: 'Early-stage startups in any sector. Apply via the NITI Aayog AIM portal.',
+    applyLink: 'https://aim.gov.in/'
+  },
+  {
+    name: 'SIDBI SMILE Fund',
+    whatItOffers: 'Soft loans up to ₹1 crore at concessional rates for MSMEs — ideal for product development and working capital.',
+    eligibility: 'MSMEs with at least 3 years of operation or new-age startups with proven unit economics.',
+    applyLink: 'https://sidbi.in/'
+  }
+];
+
+const VIDEO_TOPICS = [
+  { title: '"Zero to One" — How Indian founders found product-market fit', keyword: 'indian startup product market fit 2024' },
+  { title: 'Building an MVP for ₹0 — Jugaad Framework', keyword: 'build MVP zero budget india startup' },
+  { title: 'How to Pitch to Indian VCs and Angel Investors', keyword: 'how to pitch indian investors startup' },
+  { title: 'Registering Your Startup — Pvt Ltd vs LLP vs OPC', keyword: 'startup registration india pvt ltd llp' },
+  { title: 'PM Startup India Schemes Explained in 10 Minutes', keyword: 'startup india government schemes explained 2024' },
+];
 
 export default function ResourcesPanel() {
   const { state } = useAppContext();
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('videos'); // videos | news | govt
-  const [loading, setLoading] = useState(false);
+  const { fetchNews } = useGNews();
+  const { generateJSON } = useOpenAI();
 
-  const [videos, setVideos] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('schemes');
+
   const [news, setNews] = useState([]);
-  const [govtSchemes, setGovtSchemes] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(false);
+
+  const [schemes, setSchemes] = useState(STATIC_SCHEMES); // default to static
+  const [loadingSchemes, setLoadingSchemes] = useState(false);
+  const [schemesPersonalized, setSchemesPersonalized] = useState(false);
+
+  // Load News (lazy on tab open)
+  const loadNews = useCallback(async () => {
+    if (news.length > 0 || loadingNews || !state.idea) return;
+    setLoadingNews(true);
+    try {
+      const term = state.idea.split(' ').slice(0, 4).join(' ');
+      const articles = await fetchNews(term, 8);
+      if (articles && articles.length > 0) setNews(articles);
+    } catch (e) {
+      console.warn('News load failed', e);
+    } finally {
+      setLoadingNews(false);
+    }
+  }, [news.length, loadingNews, state.idea, fetchNews]);
+
+  // Personalize schemes via OpenAI (wraps array in object for json_object mode)
+  const loadPersonalizedSchemes = useCallback(async () => {
+    if (schemesPersonalized || loadingSchemes || !state.idea) return;
+    setLoadingSchemes(true);
+    try {
+      const prompt = `Given this Indian startup idea: "${state.idea}" and stage: "${state.user?.stage || 'Early Stage'}", select the 4 most relevant Indian government schemes from this list and explain why each fits:
+PM YUVA 2.0, Startup India Seed Fund, iCreate, NSTEDB, Atal Innovation Mission, MSME schemes, CSR Connect, State THub programs, SIDBI, NABARD.
+
+Return as JSON object (not array): { "schemes": [ { "name": "...", "whatItOffers": "1 sentence benefits", "eligibility": "1 sentence eligibility", "applyLink": "https://..." } ] }`;
+
+      const result = await generateJSON(prompt, 0.7);
+      const arr = result?.schemes || (Array.isArray(result) ? result : null);
+      if (arr && arr.length > 0) {
+        setSchemes(arr.slice(0, 4));
+        setSchemesPersonalized(true);
+      }
+    } catch (err) {
+      console.warn('Personalized schemes failed, using static', err);
+      // Keep static fallback already set
+    } finally {
+      setLoadingSchemes(false);
+    }
+  }, [schemesPersonalized, loadingSchemes, state.idea, state.user, generateJSON]);
 
   useEffect(() => {
-    if (isOpen) {
-      loadResources();
-    }
-  }, [isOpen, activeTab, state.currentModule?.name]);
+    if (isOpen && activeTab === 'news') loadNews();
+    if (isOpen && activeTab === 'schemes') loadPersonalizedSchemes();
+  }, [isOpen, activeTab]); // eslint-disable-line
 
-  const loadResources = async () => {
-    setLoading(true);
-    try {
-      const topic = state.currentModule?.name || state.idea || 'Startup Basics';
-      const sector = state.user?.stage || 'social enterprise';
-
-      if (activeTab === 'videos' && videos.length === 0) {
-        const res = await getRecommendedVideos([topic, sector]);
-        setVideos(res || []);
-      } else if (activeTab === 'news' && news.length === 0) {
-        const res = await fetchNews(`${topic} startup India`);
-        setNews(res || []);
-      } else if (activeTab === 'govt' && govtSchemes.length === 0) {
-        // Hardcoded dummy schemes adapted to sector
-        setGovtSchemes([
-          { title: "Startup India Seed Fund Scheme (SISFS)", link: "https://seedfund.startupindia.gov.in/", desc: "Financial assistance to startups for proof of concept, prototype development, product trials, market entry." },
-          { title: "Credit Guarantee Scheme (CGTMSE)", link: "https://www.cgtmse.in/", desc: "Collateral-free credit to micro and small enterprises." },
-          { title: "Stand-Up India Scheme", link: "https://www.standupmitra.in/", desc: "Bank loans between 10 Lakh and 1 Crore for greenfield enterprises for specific demographics." }
-        ]);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!state.idea) return null;
+  if (!state.user) return null;
 
   return (
     <>
-      {/* Floating Action Badge on Left Side */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed top-1/2 left-0 z-40 bg-[#0f9b58] text-white py-4 pl-2 pr-4 rounded-r-2xl shadow-[5px_0_20px_rgba(15,155,88,0.4)] hover:pr-6 active:translate-x-1 transition-all -translate-y-1/2 flex items-center gap-2 font-bold ${isOpen ? '-translate-x-full' : 'translate-x-0'}`}
-      >
-        <BookOpen className="w-5 h-5" />
-        <span className="[writing-mode:vertical-lr] rotate-180 tracking-widest uppercase text-sm -ml-1">Resources</span>
-      </button>
-
-      {/* Slide-out Drawer (Left Side) */}
-      <div className={`fixed inset-y-0 left-0 w-full sm:w-[400px] bg-[#1a1a2e] border-r-2 border-white/5 z-50 transform transition-transform duration-300 ease-out flex flex-col shadow-[20px_0_50px_rgba(0,0,0,0.5)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        
-        {/* Header */}
-        <div className="p-6 border-b-2 border-white/5 flex items-center justify-between pb-4">
-          <div>
-            <h2 className="text-2xl font-poppins font-black text-white">Knowledge Hub</h2>
-            <p className="text-[#0f9b58] text-xs font-bold uppercase tracking-widest mt-1 truncate max-w-[200px]">
-              {state.currentModule?.name || 'General Context'}
-            </p>
-          </div>
-          <button onClick={() => setIsOpen(false)} className="bg-white/5 p-2 rounded-xl text-white/50 hover:text-white hover:bg-[#e94560]/20 transition-all border border-transparent hover:border-[#e94560]/50">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex p-2 bg-[#16213e]">
-           <button onClick={() => setActiveTab('videos')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'videos' ? 'bg-[#FF6B35] text-white shadow-md' : 'text-white/40 hover:text-white'}`}>
-             <Video className="w-4 h-4"/> Videos
-           </button>
-           <button onClick={() => setActiveTab('news')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'news' ? 'bg-[#0f9b58] text-white shadow-md' : 'text-white/40 hover:text-white'}`}>
-             <FileText className="w-4 h-4"/> Live News
-           </button>
-           <button onClick={() => setActiveTab('govt')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'govt' ? 'bg-[#e94560] text-white shadow-md' : 'text-white/40 hover:text-white'}`}>
-             <Landmark className="w-4 h-4"/> Govt
-           </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-          {loading && (
-             <div className="flex flex-col items-center justify-center p-8 text-center h-48">
-                <Loader2 className="w-10 h-10 text-white/40 animate-spin mb-4" />
-                <p className="font-bold text-white/50 text-sm tracking-widest uppercase">Fetching Live Data...</p>
-             </div>
-          )}
-
-          {/* Video Tab */}
-          {!loading && activeTab === 'videos' && videos.length > 0 && videos.map((v, i) => (
-             <a key={i} href={`https://youtube.com/watch?v=${v.id?.videoId || v.id}`} target="_blank" rel="noreferrer" className="block bg-[#202f36] border border-white/10 rounded-2xl overflow-hidden hover:border-[#FF6B35] transition-all group">
-                <div className="h-40 bg-zinc-800 relative overflow-hidden">
-                   <img src={v.snippet.thumbnails.high.url} alt="thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all"></div>
-                   <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded">Watch</div>
-                </div>
-                <div className="p-4">
-                   <h4 className="font-bold text-sm text-white line-clamp-2 leading-snug mb-2 group-hover:text-[#FF6B35] transition-colors">{v.snippet.title}</h4>
-                   <p className="text-xs text-white/50 font-medium">{v.snippet.channelTitle}</p>
-                </div>
-             </a>
-          ))}
-
-          {/* News Tab */}
-          {!loading && activeTab === 'news' && news.length > 0 && news.map((n, i) => (
-             <a key={i} href={n.url} target="_blank" rel="noreferrer" className="block bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors group">
-                <div className="flex justify-between items-start mb-2">
-                   <span className="text-[10px] font-black text-[#0f9b58] uppercase tracking-widest">{n.source.name}</span>
-                   <ExternalLink className="w-4 h-4 text-white/30 group-hover:text-[#0f9b58] transition-colors" />
-                </div>
-                <h4 className="font-bold text-white text-sm mb-2 leading-snug">{n.title}</h4>
-                <p className="text-xs text-white/50 line-clamp-3">{n.description}</p>
-             </a>
-          ))}
-
-          {/* Govt Tab */}
-          {!loading && activeTab === 'govt' && govtSchemes.map((gov, i) => (
-             <a key={i} href={gov.link} target="_blank" rel="noreferrer" className="block bg-[#e94560]/10 border border-[#e94560]/30 rounded-2xl p-4 hover:bg-[#e94560]/20 transition-colors group">
-                <div className="flex items-center gap-3 mb-3">
-                   <div className="w-8 h-8 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[#e94560]"><Landmark className="w-4 h-4"/></div>
-                   <h4 className="font-bold text-[#FFD700] text-sm leading-tight flex-1">{gov.title}</h4>
-                </div>
-                <p className="text-xs text-white/70 leading-relaxed">{gov.desc}</p>
-             </a>
-          ))}
-
-          {!loading && ((activeTab === 'videos' && videos.length === 0) || (activeTab === 'news' && news.length === 0)) && (
-             <div className="text-center p-8 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-white/40 text-sm font-medium">No direct active content found for this module right now. Checking archives...</p>
-             </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Overlay */}
-      {isOpen && (
-         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden" onClick={() => setIsOpen(false)} />
+      {/* Trigger button — bottom-left to avoid conflict with AI Coach (bottom-right) */}
+      {!isOpen && state.idea && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 1, type: 'spring' }}
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-8 left-8 z-40 bg-surface border-2 border-saffron/50 text-white pl-4 pr-5 py-3.5 rounded-full shadow-[0_0_25px_rgba(255,107,53,0.3)] hover:scale-105 hover:border-saffron hover:shadow-[0_0_35px_rgba(255,107,53,0.5)] transition-all font-bold flex items-center gap-2.5 group"
+        >
+          <span className="text-xl">🚀</span>
+          <span className="text-sm">Founder Hub</span>
+        </motion.button>
       )}
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-navy/60 backdrop-blur-sm z-50"
+            />
+
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
+              className="fixed right-0 top-0 h-full w-full sm:w-[480px] bg-surface border-l border-white/10 shadow-2xl z-50 flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b border-white/10 bg-navy flex-shrink-0">
+                <div>
+                  <h2 className="text-lg font-poppins font-bold text-white flex items-center gap-2">
+                    <span className="text-xl">🚀</span> Founder Hub
+                  </h2>
+                  <p className="text-xs text-muted mt-0.5">
+                    {schemesPersonalized ? `Curated for: ${state.idea?.slice(0, 40)}...` : 'Your resource centre'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-full"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-white/10 bg-navy/50 flex-shrink-0">
+                {[
+                  { id: 'schemes', label: 'Schemes', icon: Building2 },
+                  { id: 'news', label: 'Live News', icon: Newspaper },
+                  { id: 'videos', label: 'Videos', icon: Youtube },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    className={`flex-1 py-3.5 text-xs font-bold flex flex-col items-center gap-1 border-b-2 transition-colors ${
+                      activeTab === id ? 'border-saffron text-saffron' : 'border-transparent text-muted hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-5 bg-navy custom-scrollbar">
+
+                {/* SCHEMES TAB */}
+                {activeTab === 'schemes' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-muted">
+                        {schemesPersonalized ? '✨ AI-matched to your idea' : '📋 Top govt schemes for founders'}
+                      </p>
+                      {!loadingSchemes && !schemesPersonalized && state.idea && (
+                        <button
+                          onClick={() => { setSchemesPersonalized(false); loadPersonalizedSchemes(); }}
+                          className="text-xs text-saffron flex items-center gap-1 hover:text-white transition-colors"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Personalize
+                        </button>
+                      )}
+                    </div>
+
+                    {loadingSchemes && (
+                      <div className="space-y-3 animate-pulse">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-surface/50 rounded-xl" />)}
+                      </div>
+                    )}
+
+                    {!loadingSchemes && schemes.map((scheme, i) => (
+                      <div key={i} className="bg-surface rounded-xl p-4 border border-white/10 hover:border-saffron/50 transition-all group">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-bold text-white text-sm leading-tight flex-1 pr-2">{scheme.name}</h3>
+                          <Building2 className="w-4 h-4 text-saffron/50 flex-shrink-0 mt-0.5" />
+                        </div>
+                        <p className="text-xs text-muted mb-2 leading-relaxed border-l-2 border-saffron/30 pl-2">{scheme.whatItOffers}</p>
+                        <p className="text-[11px] text-white/40 mb-3 bg-navy/50 px-2 py-1.5 rounded leading-relaxed">
+                          <span className="text-saffron font-bold">Eligibility:</span> {scheme.eligibility}
+                        </p>
+                        <a
+                          href={scheme.applyLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-navy bg-saffron hover:bg-saffron/80 px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-1.5 w-full justify-center"
+                        >
+                          Apply Now <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* NEWS TAB */}
+                {activeTab === 'news' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted mb-3">Live headlines from the Indian startup ecosystem</p>
+                    {loadingNews && (
+                      <div className="space-y-3 animate-pulse">
+                        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-surface/50 rounded-xl" />)}
+                      </div>
+                    )}
+                    {!loadingNews && news.length === 0 && (
+                      <div className="text-center py-10 text-muted">
+                        <Newspaper className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">Fetching latest headlines...</p>
+                      </div>
+                    )}
+                    {news.map((n, i) => (
+                      <a
+                        key={i}
+                        href={n.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block bg-surface rounded-xl p-4 border border-white/10 hover:border-saffron/50 transition-all group"
+                      >
+                        <h3 className="font-bold text-white text-sm mb-2 leading-snug group-hover:text-saffron transition-colors">{n.title}</h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-saffron bg-saffron/10 px-2 py-0.5 rounded">{n.source?.name || 'News'}</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-muted group-hover:text-saffron transition-colors" />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* VIDEOS TAB */}
+                {activeTab === 'videos' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted mb-3">Curated startup education for Indian founders</p>
+                    {VIDEO_TOPICS.map((v, i) => (
+                      <a
+                        key={i}
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(v.keyword)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 bg-surface rounded-xl p-3 border border-white/10 hover:border-red-500/50 hover:bg-red-500/5 transition-all group"
+                      >
+                        <div className="w-16 h-12 bg-navy rounded-lg flex items-center justify-center border border-white/5 relative overflow-hidden flex-shrink-0">
+                          <div className="absolute inset-0 bg-red-600/20 group-hover:bg-red-600/40 transition-colors" />
+                          <Youtube className="w-5 h-5 text-red-500 relative z-10" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-white text-xs leading-snug mb-0.5 group-hover:text-red-400 transition-colors line-clamp-2">{v.title}</p>
+                          <p className="text-[10px] text-muted font-mono truncate">{v.keyword}</p>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
