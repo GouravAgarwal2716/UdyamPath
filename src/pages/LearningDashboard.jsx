@@ -35,6 +35,19 @@ export default function LearningDashboard() {
 
   const completedCount = Object.keys(progress).filter(k => progress[k].attempts > 0).length;
   
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+  
   // Overall mastery avg
   const totalMastery = Object.values(progress).reduce((acc, val) => acc + (val.masteryLevel || 0), 0);
   const avgMastery = Object.keys(progress).length > 0 ? Math.round(totalMastery / Object.keys(progress).length) : 0;
@@ -58,10 +71,15 @@ export default function LearningDashboard() {
     <div className="bg-navy min-h-screen pt-24 pb-24 px-6 relative">
       <div className="max-w-6xl mx-auto">
         {/* TOP SECTION */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-           <div className="glass-card p-6 flex items-center justify-between border-t-saffron border-t-2 col-span-1 md:col-span-2">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+        >
+           <div className="glass-card p-6 flex items-center justify-between border-t-saffron border-t-2 col-span-1 md:col-span-2 shadow-[0_10px_40px_rgba(255,107,53,0.1)]">
              <div>
-               <h1 className="text-3xl font-poppins font-bold text-white mb-2">Welcome back, {state.user?.name.split(' ')[0]}</h1>
+               <h1 className="text-3xl font-poppins font-bold text-white mb-2">Welcome back{state.user?.name ? `, ${state.user.name.split(' ')[0]}` : ''}</h1>
                <p className="text-muted mb-4">Your journey to build <span className="text-saffron italic">"{state.idea.substring(0, 40)}..."</span></p>
                <StreakBadge />
              </div>
@@ -83,14 +101,19 @@ export default function LearningDashboard() {
                </div>
              )}
            </div>
-        </div>
+        </motion.div>
 
         {/* CORE MODULES */}
         <h2 className="text-2xl font-poppins font-bold text-white mb-6 flex items-center gap-2">
            <BookIcon className="w-6 h-6 text-saffron" /> Core Curriculum
         </h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
+        >
           {coreModules.map((mod, idx) => {
              const Icon = mod.icon;
              const modData = progress[mod.id] || { masteryLevel: 0, attempts: 0, lastScore: null };
@@ -99,10 +122,8 @@ export default function LearningDashboard() {
 
              return (
                <motion.div 
+                 variants={itemVariants}
                  key={mod.id}
-                 initial={{ opacity: 0, scale: 0.95 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 transition={{ delay: idx * 0.05 }}
                  onClick={() => isUnlocked && setSelectedModule(mod)}
                  className={`relative glass-card p-6 overflow-hidden transition-all duration-300 ${
                    isUnlocked 
@@ -145,7 +166,7 @@ export default function LearningDashboard() {
                </motion.div>
              )
           })}
-        </div>
+        </motion.div>
       </div>
 
 

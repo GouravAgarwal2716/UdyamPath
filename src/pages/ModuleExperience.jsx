@@ -8,7 +8,7 @@ import useSarvam from '../hooks/useSarvam';
 import { MOCK_ARTICLES, generateScenarioPrompt } from '../utils/moduleConfig';
 import Avatar from '../components/Avatar';
 import QuestionEngine from '../components/QuestionEngine';
-import { MessageCircle, X, Clock, AlertCircle, LogOut } from 'lucide-react';
+import { MessageCircle, X, Clock, AlertCircle, LogOut, Newspaper, Cpu, Mic } from 'lucide-react';
 
 export default function ModuleExperience() {
   const { state, updateState, updateModuleProgress } = useAppContext();
@@ -124,34 +124,65 @@ export default function ModuleExperience() {
   }
 
   if (loadingStep < 4) {
-    const loadingLabels = [
-      "",
-      "📰 Finding your real-world case study...",
-      "🤖 Designing your specific challenge room...",
-      "🔊 Preparing your mentor..."
+    const s = state.language === 'en' ? {} : {}; // simplified for brevity, replace with localized later if needed outside scope of this polish
+    const loadingData = [
+      { text: "", icon: null },
+      { text: "Finding your real-world case study...", icon: Newspaper, color: "text-saffron" },
+      { text: "Designing your specific challenge room...", icon: Cpu, color: "text-blue-400" },
+      { text: "Preparing your mentor...", icon: Mic, color: "text-purple-400" }
     ];
+    
+    const currentData = loadingData[loadingStep];
+    const Icon = currentData?.icon || Newspaper;
+
     return (
-      <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="w-64 h-2 bg-surface rounded-full mb-8 overflow-hidden relative">
-          <motion.div
-            className="absolute top-0 left-0 h-full bg-saffron"
-            initial={{ width: '0%' }}
-            animate={{ width: `${(loadingStep / 3) * 100}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-        <div className="w-16 h-16 border-4 border-saffron/30 border-t-saffron rounded-full animate-spin mb-6"></div>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={loadingStep}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="text-lg font-poppins text-saffron font-bold"
-          >
-            {loadingLabels[loadingStep]}
-          </motion.p>
-        </AnimatePresence>
+      <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center text-white relative overflow-hidden">
+        {/* Decorative background blur */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-saffron/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="glass-card p-10 max-w-md w-full relative z-10 border-t-2 border-t-saffron shadow-2xl"
+        >
+          <div className="flex justify-center mb-8 relative">
+            <div className="absolute inset-0 border-4 border-dashed border-white/10 rounded-full animate-[spin_10s_linear_infinite]"></div>
+            <div className="w-20 h-20 rounded-full bg-surface border border-white/20 flex items-center justify-center relative z-10 shadow-lg">
+               <AnimatePresence mode="wait">
+                 <motion.div
+                   key={loadingStep}
+                   initial={{ scale: 0, rotate: -180 }}
+                   animate={{ scale: 1, rotate: 0 }}
+                   exit={{ scale: 0, rotate: 180 }}
+                   transition={{ type: "spring", bounce: 0.4 }}
+                 >
+                   {Icon && <Icon className={`w-10 h-10 ${currentData.color}`} />}
+                 </motion.div>
+               </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="w-full h-1.5 bg-surface rounded-full mb-6 overflow-hidden relative">
+            <motion.div
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-saffron to-amber-400"
+              initial={{ width: '0%' }}
+              animate={{ width: `${(loadingStep / 3) * 100}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.h3
+              key={loadingStep}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={`text-lg font-poppins font-bold ${currentData.color}`}
+            >
+              {currentData?.text}
+            </motion.h3>
+          </AnimatePresence>
+        </motion.div>
       </div>
     );
   }

@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PlayCircle, Award, Target, BookOpen, TrendingUp, Download } from 'lucide-react';
+import AuthModal from '../components/AuthModal';
 
+import { useAppContext } from '../context/AppContext';
+
+// Background particle logic omitted for brevity in replacement snippet
 const ParticleBackground = () => {
   const canvasRef = useRef(null);
 
@@ -84,6 +88,25 @@ const AnimatedCounter = ({ end, duration, prefix = '', suffix = '' }) => {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { authUser, state, authLoading } = useAppContext();
+
+  const [showAuth, setShowAuth] = useState(false);
+  const [authIsLogin, setAuthIsLogin] = useState(false);
+
+  // Automatically redirect authenticated users after cloud hydration finishes
+  useEffect(() => {
+    if (authUser && !authLoading) {
+       // Only redirect once Firebase has told us if they already have an idea saved
+       if (state.idea && state.user && state.user.name) {
+         navigate('/dashboard');
+       } else {
+         navigate('/onboarding');
+       }
+    }
+  }, [authUser, authLoading, state.idea, state.user, navigate]);
+
+  const openRegister = () => { setAuthIsLogin(false); setShowAuth(true); };
+  const openLogin = () => { setAuthIsLogin(true); setShowAuth(true); };
 
   const problemCards = [
     { stat: "90%", desc: "of social initiatives fail due to execution gaps", icon: Target },
@@ -99,16 +122,30 @@ export default function Landing() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-navy overflow-hidden">
+    <div className="relative min-h-screen bg-navy flex flex-col overflow-x-hidden pt-20">
       <ParticleBackground />
       
+      {/* Absolute Header inside Landing for Login */}
+      <div className="absolute top-0 w-full p-6 flex justify-between items-center z-50">
+        <div className="font-poppins font-bold text-2xl text-white tracking-tight flex items-center gap-2">
+           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-saffron to-amber-600 flex items-center justify-center text-white font-bold text-lg shadow-saffron-glow">U</span>
+           dyam<span className="text-saffron">Path</span>
+        </div>
+        <button onClick={openLogin} className="text-white hover:text-saffron font-bold px-6 py-2 transition-colors border border-transparent hover:border-saffron/30 rounded-full bg-surface/30 backdrop-blur-md">
+           Log In
+        </button>
+      </div>
+
+      {/* Auth Modal Portal */}
+      {showAuth && <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} defaultIsLogin={authIsLogin} />}
+
       {/* HERO SECTION */}
-      <section className="relative z-10 pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <section className="relative z-10 pt-20 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center flex-1 justify-center">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8 }}
-          className="bg-surface/50 border border-saffron/20 rounded-full px-6 py-2 mb-8 backdrop-blur-md"
+          className="bg-surface/50 border border-saffron/20 rounded-full px-6 py-2 mb-10 backdrop-blur-md shadow-[0_0_30px_rgba(255,107,53,0.15)]"
         >
           <p className="text-muted text-sm md:text-base font-inter">
             <AnimatedCounter end={40000000} duration={2500} /> students. Less than 1% get real guidance.
@@ -119,9 +156,9 @@ export default function Landing() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl md:text-7xl font-poppins font-extrabold text-white leading-tight mb-6 max-w-5xl tracking-tight"
+          className="text-5xl md:text-7xl lg:text-[5.5rem] font-poppins font-extrabold text-white leading-[1.1] mb-8 max-w-5xl tracking-tight"
         >
-          The <span className="text-saffron">IIM Case Study Room</span>.<br />For Every Indian Entrepreneur.
+          The <span className="text-saffron bg-clip-text text-transparent bg-gradient-to-r from-saffron to-amber-400">IIM Case Study Room</span>.<br />For Every Indian Entrepreneur.
         </motion.h1>
 
         <motion.p 
@@ -130,22 +167,18 @@ export default function Landing() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-xl md:text-2xl text-muted font-inter max-w-3xl mb-12"
         >
-          Real-world challenges. Personalized guidance. Your language. Free.
+          Real-world challenges. Personalized AI mentors. Your language. 100% Free.
         </motion.p>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto"
+          className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto mt-4"
         >
-          <button onClick={() => navigate('/onboarding')} className="btn-primary text-lg flex items-center justify-center gap-2 group">
-            Start My Journey
-            <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button className="btn-ghost flex items-center justify-center gap-2 group text-lg bg-surface/30 backdrop-blur-md">
-            <PlayCircle className="w-5 h-5" />
-            Watch Demo
+          <button onClick={openRegister} className="btn-primary text-xl px-10 py-5 flex items-center justify-center gap-3 group shadow-saffron-glow hover:scale-[1.02] transition-transform">
+            Launch Your Startup
+            <TrendingUp className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </button>
         </motion.div>
       </section>

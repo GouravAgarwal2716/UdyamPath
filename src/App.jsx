@@ -16,11 +16,21 @@ import ResourcesPanel from './components/ResourcesPanel';
 
 // Protected Route stub
 function ProtectedRoute({ children }) {
-  const { state } = useAppContext();
+  const { state, authUser, authLoading } = useAppContext();
+  
+  if (authLoading) {
+    return <div className="min-h-screen bg-navy flex items-center justify-center text-saffron animate-pulse font-bold">Loading Session...</div>;
+  }
+  
+  if (!authUser) {
+    return <Navigate to="/" replace />;
+  }
+  
   // Check if user has completed onboarding
-  if (!state.user || !state.idea) {
+  if (!state.user || !state.idea || !state.user.name) {
     return <Navigate to="/onboarding" replace />;
   }
+  
   return children;
 }
 
@@ -42,8 +52,8 @@ export default function App() {
     <AppProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<AppShell><Landing /></AppShell>} />
-          <Route path="/onboarding" element={<AppShell><Onboarding /></AppShell>} />
+          <Route path="/" element={<AppShell showNav={false}><Landing /></AppShell>} />
+          <Route path="/onboarding" element={<AppShell showNav={false}><Onboarding /></AppShell>} />
           
           <Route path="/validate" element={<ProtectedRoute><AppShell><ValidationReport /></AppShell></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><AppShell><LearningDashboard /></AppShell></ProtectedRoute>} />

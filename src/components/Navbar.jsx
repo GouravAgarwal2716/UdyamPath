@@ -4,6 +4,8 @@ import { Flame, LogOut, ChevronDown, BookOpen, Globe } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { logoutUser } from '../utils/firebase';
+
 const LANG_OPTIONS = [
   { code: 'en', label: 'EN', name: 'English' },
   { code: 'hi', label: 'हि', name: 'Hindi' },
@@ -26,8 +28,9 @@ export default function Navbar() {
 
   const currentLang = LANG_OPTIONS.find(l => l.code === state.language) || LANG_OPTIONS[0];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowUserMenu(false);
+    await logoutUser(); // Actually sever the Firebase session!
     resetState();
     navigate('/');
   };
