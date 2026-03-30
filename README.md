@@ -1,69 +1,202 @@
-# UdyamPath 🚀
-### Your Multilingual AI Co-founder for Social Entrepreneurship in Bharat
+# 🚀 Udyam AI — Build Your Startup Journey
 
-**UdyamPath** is a production-quality, multilingual AI-powered learning platform built natively for the Google Developer Group Hackathon. It acts as an AI co-founder that combines the experiential learning of Monopoly, the structured guidance of top incubators, and the emotional support of a personal mentor — in 4 Indian languages (English, Hindi, Telugu, Tamil).
+Udyam AI is a full-stack, AI-powered, gamified web platform that transforms any idea into a **personalized, interactive 7-level startup journey**.
+
+It acts as your **AI co-founder, mentor, and simulator**, helping aspiring entrepreneurs validate, learn, and grow — regardless of language or background.
 
 ---
 
-## 🌟 Key Features
+## 🌟 What Makes It Special
 
-1. **Gamified Trial-and-Error Simulations**: Step into the role of a CEO. Take interactive challenges dynamically tailored to your unique startup idea. Make mistakes, lose simulated budget/trust, and learn from immediate real-world consequences without the actual risk.
-2. **Dynamic Idea Validation**: Powered by Gemini 1.5 Flash, generating a holistic 6-point feasibility and uniqueness report in under 5 seconds.
-3. **Multilingual Text-to-Speech**: Utilizing Sarvam AI to natively synthesize scenario contexts into colloquial regional languages for maximum accessibility.
-4. **Custom PDF Executive Summaries**: Built-in 1-click `jsPDF` reporting system that charts your failed attempts and highlights the ultimate real-world "Golden Formula" methodology mapped against actual successful Indian startups.
-5. **Udyam Guru (AI Coach)**: An empathetic sidebar AI assistant seeded directly against the founder's biggest personal fears. 
+- 🧠 **Dynamic AI Generation** — Every level, challenge, and suggestion is uniquely generated based on your idea
+- 🎮 **Gamified Learning** — Learn entrepreneurship through interactive simulations and games
+- 🤖 **AI Co-Founder (Agentic AI)** — Tracks your progress and guides you
+- 🌐 **Multilingual Support** — Powered by Sarvam AI (English, Telugu, Hindi, Tamil)
+- 📊 **Real-Time Scoring** — Impact, Trust, Feasibility, Scalability
+- 🎯 **India-Focused Insights** — Built for real-world startup challenges
+
+---
+
+## 🎮 How It Works
+
+1. 💡 **Enter your startup idea** (or upload a document)
+2. 📊 **Get an AI-generated validation dashboard**
+3. 🚀 **Start a 7-level simulation journey**
+4. 🎲 **Play interactive games** (MCQs, decisions, matching)
+5. 📈 **Watch your scores evolve** based on decisions
+6. 🛣️ **View your final startup roadmap**
+
+---
+
+## 🧠 Agentic AI System
+
+Udyam AI uses a multi-agent system:
+
+- **Validator Agent** → Evaluates your idea
+- **Simulation Agent** → Generates level scenarios
+- **Planner Agent** → Suggests next actions
+- **Coach Agent** → Motivates & guides
+- **Research Agent** → Fetches insights
+
+All agents work together to simulate a **real startup journey**.
+
+---
+
+## 📁 Project Structure
+
+```
+.
+├── src/
+│ ├── components/ # UI components (Navbar, Chatbot, Game UI)
+│ ├── context/ # Global state (IdeaContext)
+│ ├── pages/ # Views (Input, Dashboard, Levels, Roadmap)
+│ ├── services/ # API integrations (AI, Translation, YouTube)
+│ ├── App.jsx # Routing
+│ ├── main.jsx # Entry point
+│ └── index.css # Styles
+├── public/ # Static assets
+├── .env # Environment variables
+├── package.json
+├── vite.config.js
+└── README.md
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Framework**: React 18 + Vite
-- **Styling**: Tailwind CSS (Leveraging specific Saffron/Navy custom tokens & Glassmorphism)
-- **Visuals**: Recharts (Dynamic scoring rings), Lucide-React (Iconography)
-- **AI Core**: Google Generative AI (Gemini 1.5 Flash), Sarvam AI (Regional Speech)
-- **Live Data APIs**: GNews API, YouTube Data v3 API
-- **Document Generation**: jsPDF
+| Layer              | Technology                 |
+| ------------------ | -------------------------- |
+| Frontend           | React + Vite + TailwindCSS |
+| AI Engine          | OpenAI / Gemini            |
+| Translation        | Sarvam AI                  |
+| Videos             | YouTube Data API           |
+| Backend (optional) | Node.js + Express          |
+| Database           | Firebase Firestore         |
+| Auth               | Firebase Auth              |
 
 ---
 
-## ⚙️ Quick Start Guide
+## 🔐 Environment Setup
 
-### 1. Requirements
-Ensure you have Node.js (v18+) and npm installed on your machine.
+Create a `.env` file in the root directory:
 
-### 2. Clone and Install
-\`\`\`bash
-git clone https://github.com/your-username/udyampath.git
-cd udyampath
+```env
+VITE_OPENAI_API_KEY=your_openai_api_key
+VITE_YOUTUBE_API_KEY=your_youtube_api_key
+VITE_SARVAM_API_KEY=your_sarvam_api_key
+
+# Firebase (optional)
+VITE_FIREBASE_API_KEY=your_key
+VITE_FIREBASE_AUTH_DOMAIN=your_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+---
+
+## 🚀 Installation
+
+```bash
 npm install
-\`\`\`
-
-### 3. Environment Setup
-Create a `.env` file in the root directory and add the following securely. Do NOT commit this file to version control logic:
-\`\`\`env
-# Core AI Engine (crucial for Validation, Simulation, AI Coach)
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
-
-# Voice Synthesis (For Regional Scenarios)
-VITE_SARVAM_API_KEY=your_sarvam_api_key_here
-
-# Live Data Feeds
-VITE_YOUTUBE_API_KEY=your_youtube_api_key_here
-VITE_GNEWS_API_KEY=your_gnews_api_key_here
-\`\`\`
-
-### 4. Running Locally
-Simply spin up the lightning-fast Vite dev server:
-\`\`\`bash
-npm run dev
-\`\`\`
-The interactive UI will be available at [http://localhost:5173/](http://localhost:5173/) !
-
-### 5. Build for Production
-\`\`\`bash
-npm run build
-\`\`\`
-The bundled frontend assets will be output safely directly to the `/dist` directory.
+```
 
 ---
-*Built with ❤️ for the Google Developer Group Hackathon.*
+
+## ▶️ Run the App
+
+```bash
+npm run dev
+```
+
+App will run at:
+[http://localhost:5173](http://localhost:5173)
+
+---
+
+## 🌐 Features Breakdown
+
+### 📊 AI Dashboard
+
+- Idea validation
+- Strengths & weaknesses
+- Multi-metric scoring
+
+---
+
+### 🎮 Simulation Levels
+
+- 7 dynamic levels
+- AI-generated scenarios
+- Interactive games
+- Decision-based outcomes
+
+---
+
+### 📈 Score System
+
+- Impact Score
+- Trust Score
+- Feasibility Score
+- Scalability Score
+
+---
+
+### 🎥 Smart Sidebar
+
+- Context-aware YouTube videos
+- Learning resources per level
+
+---
+
+### 🤖 AI Chatbot (Multilingual)
+
+- Context-aware responses
+- Uses Sarvam AI for translation
+- Supports multiple Indian languages
+- Provides guidance, motivation, and action steps
+
+---
+
+### 📂 File Upload
+
+- Upload idea via PDF/DOCX/TXT
+- Auto text extraction
+
+---
+
+### 🛣️ Journey Roadmap
+
+- Visual scroll-based journey
+- Shows growth and decisions
+- Final startup evolution
+
+---
+
+## ⚡ Future Enhancements
+
+- 🎤 Voice-based AI interaction
+- 🧑🤝🧑 Multiplayer simulation
+- 🧪 “What-if” scenario testing
+- 🏅 XP, badges & achievements
+- 📊 Advanced analytics dashboard
+
+---
+
+## 🏆 Hackathon Pitch Line
+
+> "Udyam AI is not just a tool — it’s a personalized startup journey powered by AI that acts like your co-founder, guiding you from idea to execution."
+
+---
+
+## 💬 Final Note
+
+This project is built to democratize entrepreneurship by giving every aspiring founder:
+
+- Guidance
+- Simulation
+- Support
+- Confidence
