@@ -18,10 +18,10 @@ export default function ModuleExperience() {
   const { generateJSON } = useOpenAI();
   const { synthesizeSpeech } = useSarvam();
 
-  const [loadingStep, setLoadingStep] = useState(0); 
+  const [loadingStep, setLoadingStep] = useState(0);
   // 0: Init, 1: GNews, 2: Gemini, 3: Sarvam, 4: Done
   const [error, setError] = useState('');
-  
+
   const [scenario, setScenario] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const [phase, setPhase] = useState('intro'); // 'intro', 'questions', 'done'
@@ -40,45 +40,45 @@ export default function ModuleExperience() {
       try {
         setLoadingStep(1); // 📰 Finding your case study...
         const mod = state.currentModule;
-        
+
         // 1. GNews Call
         const queryTerms = `${mod.name} ${mod.topic}`;
         let articles = await fetchNews(queryTerms, 5);
         if (!articles || articles.length === 0) {
-           articles = [MOCK_ARTICLES[mod.id] || MOCK_ARTICLES['default']];
+          articles = [MOCK_ARTICLES[mod.id] || MOCK_ARTICLES['default']];
         }
-        
+
         // Deduplication using scenariosUsed
         const usedUrls = state.moduleProgress[mod.id]?.scenariosUsed || [];
         let selectedArticle = articles.find(a => !usedUrls.includes(a.url));
         if (!selectedArticle) selectedArticle = articles[0]; // Fallback if all used
 
         setLoadingStep(2); // 🤖 Building your challenge room...
-        
+
         // 2. Gemini Scenario Generation
         const answerHistoryStr = JSON.stringify(state.moduleProgress[mod.id]?.answerHistory || []);
         const prompt = generateScenarioPrompt(
           state.idea, mod.name, mod.topic, mod.difficulty, selectedArticle, answerHistoryStr, state.language
         );
-        
+
         const generatedScenario = await generateJSON(prompt, 0.9);
         setScenario(generatedScenario);
-        
+
         // Update unused scenarios
-        updateModuleProgress(mod.id, { 
+        updateModuleProgress(mod.id, {
           scenariosUsed: [...usedUrls, selectedArticle.url]
         });
 
         setLoadingStep(3); // 🔊 Preparing your mentor...
-        
+
         // 3. Sarvam TTS (Done asynchronously so it doesn't block UI load)
         synthesizeSpeech(generatedScenario.avatarScript).then(audio => {
           if (audio) setAudioUrl(audio);
         }).catch(e => console.error("Sarvam TTS failed:", e));
-        
+
         // Immediately finish loading visually
         setLoadingStep(4); // Done
-        
+
         // Start timer
         timerRef.current = setInterval(() => {
           setTimeSpent(prev => prev + 1);
@@ -86,7 +86,7 @@ export default function ModuleExperience() {
 
       } catch (err) {
         console.error("Experience Load Error:", err);
-        setError("Failed to load scenario. Please try again.");
+        setError(err.message || "Failed to load scenario. Please try again.");
       }
     };
 
@@ -103,7 +103,7 @@ export default function ModuleExperience() {
 
   const handleScenarioComplete = (finalAnswers) => {
     clearInterval(timerRef.current);
-    updateState({ 
+    updateState({
       currentAnswers: finalAnswers,
       currentModule: { ...state.currentModule, timeSpent }
     });
@@ -129,24 +129,24 @@ export default function ModuleExperience() {
   if (loadingStep < 4) {
     const s = strings[state.language] || strings['en'];
     const loadingLabels = [
-      "", 
-      "📰 " + (s.checking || "Finding your real-world case study..."), 
-      "🤖 " + (s.preparing || "Designing your specific challenge room..."), 
+      "",
+      "📰 " + (s.checking || "Finding your real-world case study..."),
+      "🤖 " + (s.preparing || "Designing your specific challenge room..."),
       "🔊 " + (s.analyzing || "Preparing your mentor...")
     ];
     return (
       <div className="bg-navy min-h-screen flex flex-col items-center justify-center p-6 text-center text-white">
         <div className="w-64 h-2 bg-surface rounded-full mb-8 overflow-hidden relative">
-           <motion.div 
-             className="absolute top-0 left-0 h-full bg-saffron"
-             initial={{ width: '0%' }}
-             animate={{ width: `${(loadingStep / 3) * 100}%` }}
-             transition={{ duration: 0.5 }}
-           />
+          <motion.div
+            className="absolute top-0 left-0 h-full bg-saffron"
+            initial={{ width: '0%' }}
+            animate={{ width: `${(loadingStep / 3) * 100}%` }}
+            transition={{ duration: 0.5 }}
+          />
         </div>
         <div className="w-16 h-16 border-4 border-saffron/30 border-t-saffron rounded-full animate-spin mb-6"></div>
         <AnimatePresence mode="wait">
-          <motion.p 
+          <motion.p
             key={loadingStep}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -165,22 +165,22 @@ export default function ModuleExperience() {
       {/* TOP BAR */}
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between mb-6 glass-card p-4 border-l-4 border-l-saffron">
         <div className="flex items-center gap-4">
-           <div>
-             <h2 className="font-bold text-white text-lg leading-tight">{state.currentModule.name}</h2>
-             <span className="text-xs text-saffron uppercase font-bold tracking-wider">{state.currentModule.difficulty} DIFFICULTY</span>
-           </div>
+          <div>
+            <h2 className="font-bold text-white text-lg leading-tight">{state.currentModule.name}</h2>
+            <span className="text-xs text-saffron uppercase font-bold tracking-wider">{state.currentModule.difficulty} DIFFICULTY</span>
+          </div>
         </div>
-        
+
         <div className="flex items-center gap-6">
           <div className={`flex items-center gap-2 font-mono ${timeSpent > 600 ? 'text-saffron animate-pulse-slow' : 'text-muted'}`}>
             <Clock className="w-4 h-4" />
             <span>{formatTime(timeSpent)}</span>
           </div>
-          
+
           <button onClick={() => window.dispatchEvent(new Event('open-udyampath-coach'))} className="flex items-center gap-2 btn-ghost py-1.5 px-3 text-sm rounded-full shadow-saffron-glow">
             <MessageCircle className="w-4 h-4" /> Ask Udyam Guru
           </button>
-          
+
           <button onClick={() => setShowExitConfirm(true)} className="text-muted hover:text-accentRed transition-colors p-1">
             <X className="w-6 h-6" />
           </button>
@@ -188,17 +188,17 @@ export default function ModuleExperience() {
       </div>
 
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col lg:flex-row gap-6">
-        
+
         {/* LEFT PANEL: MENTOR */}
         <div className="w-full lg:w-[35%] flex flex-col gap-6">
-           <Avatar state="talking" audioUrl={audioUrl} companyName={scenario.companyName} companyInitial={scenario.companyName.charAt(0)} />
+          <Avatar state="talking" audioUrl={audioUrl} companyName={scenario.companyName} companyInitial={scenario.companyName.charAt(0)} />
         </div>
 
         {/* RIGHT PANEL: CASE STUDY */}
         <div className="w-full lg:w-[65%] glass-card p-6 md:p-10 relative overflow-hidden flex flex-col" style={{ minHeight: '70vh' }}>
           <AnimatePresence mode="wait">
             {phase === 'intro' && (
-              <motion.div 
+              <motion.div
                 key="intro"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -207,25 +207,25 @@ export default function ModuleExperience() {
               >
                 <span className="text-saffron font-bold text-sm tracking-widest uppercase mb-2 block">Case Study Setup</span>
                 <h1 className="text-3xl md:text-4xl font-poppins font-bold text-white mb-8">{scenario.caseStudyTitle}</h1>
-                
+
                 <div className="space-y-6">
                   <div className="glass-card p-5 bg-surface/50 border-white/5">
                     <h3 className="text-sm text-muted font-bold uppercase mb-2 flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-blue-500"></span> The Company Context
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span> The Company Context
                     </h3>
                     <p className="text-white leading-relaxed">{scenario.companyContext}</p>
                   </div>
-                  
+
                   <div className="glass-card p-5 border-l-4 border-l-saffron bg-saffron/5">
                     <h3 className="text-sm text-saffron font-bold uppercase mb-2 flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-saffron"></span> What Happened
+                      <span className="w-2 h-2 rounded-full bg-saffron"></span> What Happened
                     </h3>
                     <p className="text-white leading-relaxed font-medium">{scenario.whatHappened}</p>
                   </div>
 
                   <div className="glass-card p-5 border-l-4 border-l-purple-500 bg-purple-500/5">
                     <h3 className="text-sm text-purple-400 font-bold uppercase mb-2 flex items-center gap-2">
-                       <span className="w-2 h-2 rounded-full bg-purple-500"></span> Your Situation
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span> Your Situation
                     </h3>
                     <p className="text-white leading-relaxed">{scenario.yourSituation}</p>
                   </div>
@@ -252,7 +252,7 @@ export default function ModuleExperience() {
             )}
 
             {phase === 'questions' && (
-              <motion.div 
+              <motion.div
                 key="questions"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
