@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, X, Bot, Loader2, MessageSquareText, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { chatWithCoach } from '../services/aiService';
 import { MessageSquare, X, Send, Bot, Loader2, ImagePlus } from 'lucide-react';
@@ -12,7 +14,10 @@ const PRE_PROMPTS = [
 ];
 
 export default function AICoach() {
-  const { state } = useAppContext();
+  const { state, updateState } = useAppContext();
+  const { streamText } = useOpenAI();
+  const { generateSpeech } = useSarvam();
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -22,21 +27,34 @@ export default function AICoach() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const scrollRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const audioRef = useRef(null);
+  const currentLang = LANGUAGES.find(l => l.code === state.language) || LANGUAGES[0];
+
+  // Global open listener
   useEffect(() => {
-    // Seed initial message based on user state only when opened the first time
-    if (isOpen && messages.length === 0 && state.idea) {
-      setMessages([
-        {
-          role: 'model',
-          content: `Namaste ${state.user?.name || 'Founder'}! I know building "${state.idea}" is tough, and your biggest fear is **${state.user?.fear || 'Failure'}**. Don't worry, I am here to guide you through the Indian market realities. What do you need help with right now?`
-        }
-      ]);
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-udyampath-coach', handleOpen);
+    return () => window.removeEventListener('open-udyampath-coach', handleOpen);
+  }, []);
+
+  // Intro message (reset when language changes)
+  useEffect(() => {
+    if (isOpen && state.user) {
+      const langName = currentLang.name;
+      setMessages([{
+        role: 'ai',
+        content: `Namaste ${state.user.name.split(' ')[0]}! I'm Udyam Guru, your personal startup mentor. I know you're worried about ${state.user.fear?.toLowerCase()} — that's one of the most common challenges for first-time founders in India. I'll speak to you in ${langName}. What's on your mind today?`,
+        timestamp: new Date().toISOString()
+      }]);
     }
   }, [isOpen, messages.length, state.idea, state.user]);
 
+  // Scroll to bottom
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
@@ -76,22 +94,80 @@ export default function AICoach() {
     setMessages(newMessages);
     setIsTyping(true);
 
+    const historyText = messages.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n');
+    const lowerText = textToSend.toLowerCase();
+
+    let triggerContext = '';
+    if (lowerText.includes('quit') || lowerText.includes('give up') || lowerText.includes('chod')) {
+      triggerContext = 'CRITICAL: Validate their feeling first. 90% of founders feel this. Give ONE extremely simple action for TODAY only.';
+    } else if (lowerText.includes('scheme') || lowerText.includes('government') || lowerText.includes('funding')) {
+      triggerContext = 'CRITICAL: Mention they can check the Founder Hub panel for personalized govt schemes. Give brief framing.';
+    }
+
+    const langMap = { te: 'Telugu', hi: 'Hindi', ta: 'Tamil', en: 'English' };
+    const langName = langMap[state.language] || 'English';
+
+    const prompt = `System: You are Udyam Guru, a warm experienced Indian startup mentor. Speak like a supportive elder brother. 
+Founder: ${state.user?.name}. Their idea: "${state.idea}". Their biggest fear: "${state.user?.fear}".
+Rules: 
+- Use simple language, relatable Indian examples (chai, cricket, kirana stores, auto-rickshaw).  
+- Keep responses under 120 words unless they ask for more.
+- Never say "I am an AI". 
+- Always give India-specific, actionable advice.
+- ALWAYS end with one specific question or action step.
+- Respond ENTIRELY in ${langName}. Do not mix languages unless user does so.
+
+${triggerContext ? `Special context: ${triggerContext}` : ''}
+
+Recent conversation:
+${historyText}
+
+user: ${textToSend}
+ai:`;
+
+    // Add empty AI bubble to stream into
+    setMessages(prev => [...prev, { role: 'ai', content: '', timestamp: new Date().toISOString() }]);
+
+    let finalResponse = '';
     try {
-      const response = await chatWithCoach({
-        messages: newMessages,
-        startup: state,
-        language: state.language
+      finalResponse = await streamText(prompt, (chunkText) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { ...updated[updated.length - 1], content: chunkText };
+          return updated;
+        });
       });
-      setMessages([...newMessages, { role: 'model', content: response }]);
     } catch (err) {
       console.error(err);
-      setMessages([...newMessages, { role: 'model', content: "I'm having trouble connecting to my knowledge base. Please check your connection." }]);
+      finalResponse = 'My network dropped for a moment. Please try again!';
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        { role: 'ai', content: finalResponse, timestamp: new Date().toISOString() }
+      ]);
     } finally {
       setIsTyping(false);
+      // Auto-speak the AI response
+      if (finalResponse && voiceEnabled) {
+        setTimeout(() => speakText(finalResponse), 400);
+      }
     }
   };
 
-  if (!state.idea) return null;
+  const handleLanguageChange = (langCode) => {
+    updateState({ language: langCode });
+    // Clear messages to restart in new language
+    setMessages([]);
+  };
+
+  const starterChips = [
+    'How do I validate my idea?',
+    'I feel like giving up',
+    'What govt schemes apply to me?',
+    'How do I find my first customer?',
+    'What did I get wrong in my module?'
+  ];
+
+  if (!state.user) return null;
 
   return (
     <>

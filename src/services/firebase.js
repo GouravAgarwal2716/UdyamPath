@@ -1,5 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  updateProfile
+} from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -11,7 +20,6 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only if config exists to prevent crashing if user hasn't set it yet
 let app, auth, db, googleProvider;
 
 try {
@@ -19,8 +27,22 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
   googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
 } catch (error) {
-  console.warn("Firebase not fully configured. Please check .env file.");
+  console.warn('Firebase not fully configured. Auth features will be limited.');
 }
 
-export { auth, db, googleProvider, signInWithPopup, signOut, doc, setDoc, getDoc };
+export {
+  auth,
+  db,
+  googleProvider,
+  signInWithPopup,
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  updateProfile,
+  doc,
+  setDoc,
+  getDoc
+};
