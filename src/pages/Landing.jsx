@@ -109,16 +109,16 @@ export default function Landing() {
   const openLogin = () => { setAuthIsLogin(true); setShowAuth(true); };
 
   const problemCards = [
-    { stat: "90%", desc: "of social initiatives fail due to execution gaps", icon: Target },
-    { stat: "85%", desc: "of affected youth receive no mentorship", icon: BookOpen },
-    { stat: "₹25L", desc: "IIM costs ₹25 lakhs. UdyamPath costs ₹0.", icon: Award }
+    { stat: "90%", desc: "of social initiatives fail due to poor execution", icon: Target },
+    { stat: "85%", desc: "of young founders receive zero real mentorship", icon: BookOpen },
+    { stat: "₹0", desc: "Premium stakeholder simulation training. Completely free.", icon: Award }
   ];
 
   const steps = [
-    { title: "Validate Idea", desc: "Get an AI feasibility score map" },
-    { title: "Case Study Room", desc: "Enter realistic startup scenarios" },
-    { title: "Learn & Improve", desc: "Build strategic thinking skills" },
-    { title: "Track Growth", desc: "Download action-oriented reports" }
+    { title: "Validate Idea", desc: "Get an AI feasibility diagnostic" },
+    { title: "Enter Simulation", desc: "Pitch to virtual investors & partners" },
+    { title: "Adapt & Learn", desc: "Face dynamic real-world consequences" },
+    { title: "Track Mastery", desc: "Download action-oriented playbooks" }
   ];
 
   return (
@@ -158,7 +158,7 @@ export default function Landing() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-5xl md:text-7xl lg:text-[5.5rem] font-poppins font-extrabold text-white leading-[1.1] mb-8 max-w-5xl tracking-tight"
         >
-          The <span className="text-saffron bg-clip-text text-transparent bg-gradient-to-r from-saffron to-amber-400">IIM Case Study Room</span>.<br />For Every Indian Entrepreneur.
+          The <span className="text-saffron bg-clip-text text-transparent bg-gradient-to-r from-saffron to-amber-400">Ultimate Startup Simulator</span>.<br />For Every Indian Founder.
         </motion.h1>
 
         <motion.p 
@@ -167,7 +167,7 @@ export default function Landing() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-xl md:text-2xl text-muted font-inter max-w-3xl mb-12"
         >
-          Real-world challenges. Personalized AI mentors. Your language. 100% Free.
+          Face real investors. Survive market crises. Master difficult decisions in your own language. 100% Free.
         </motion.p>
 
         <motion.div 
@@ -211,8 +211,8 @@ export default function Landing() {
       {/* HOW IT WORKS */}
       <section className="relative z-10 py-24 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-poppins font-bold text-white mb-4">How UdyamPath Works</h2>
-          <p className="text-muted text-lg max-w-2xl mx-auto">A completely personalized journey mimicking the intensity of real-world incubators.</p>
+          <h2 className="text-3xl md:text-5xl font-poppins font-bold text-white mb-4">How It Works</h2>
+          <p className="text-muted text-lg max-w-2xl mx-auto">A completely personalized journey mimicking the high stakes of a real startup incubator.</p>
         </div>
 
         <div className="relative">

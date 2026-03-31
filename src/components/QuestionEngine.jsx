@@ -186,13 +186,24 @@ export default function QuestionEngine({ scenario, onComplete }) {
           transition={{ duration: 0.25 }}
           className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-6"
         >
-          {displayQuestion.context && (
-            <p className="text-muted italic border-l-2 border-saffron/30 pl-3 mb-4 text-sm">
-              {displayQuestion.context}
-            </p>
+          {/* STAKEHOLDER BADGE - THE GAME CHANGER */}
+          {displayQuestion.stakeholder && (
+            <div className="inline-flex items-center border border-white/20 bg-surface/80 px-4 py-1.5 rounded-full mb-4 shadow-[0_0_15px_rgba(255,107,53,0.1)]">
+              <span className="text-sm font-bold text-saffron tracking-wide">
+                {displayQuestion.stakeholder}
+              </span>
+            </div>
           )}
 
-          <h2 className="text-xl md:text-2xl font-poppins font-bold text-white mb-6">
+          {displayQuestion.context && (
+            <div className="bg-navy/50 p-4 rounded-xl border border-white/5 mb-6">
+              <p className="text-gray-300 italic font-inter text-md leading-relaxed">
+                "{displayQuestion.context}"
+              </p>
+            </div>
+          )}
+
+          <h2 className="text-xl md:text-2xl font-poppins font-bold text-white mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             {displayQuestion.question || displayQuestion.statement || displayQuestion.sentence}
           </h2>
 

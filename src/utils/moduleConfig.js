@@ -38,11 +38,12 @@ LANGUAGE INSTRUCTION: ALL generated content (descriptions, questions, options, e
 
 CRITICAL RULES:
 1. The real company (from the article) is the MENTOR story. The founder's specific idea "${idea}" is the STUDENT's parallel journey.
-2. Every question must explicitly say "For YOUR idea: ${idea}..." to make it personal.
-3. Numbers must be specific and realistic (₹ amounts, days, percentages).
-4. Each stage starts with a 2-3 sentence NARRATION block that advances the story before questions.
-5. Build real emotional tension — the founder is at risk of losing everything.
-6. 15 questions total, varied types, real branching consequences.
+2. Every question must be an active STAKEHOLDER INTERACTION. Instead of asking fact-checking questions, put the user in a room talking to an investor, a government official, a customer, or a partner.
+3. Every question must have a 'stakeholder' field like '👔 Investor', '🏛️ Government', '🧑‍🌾 Customer', '🤝 Co-founder', etc.
+4. The 'context' field MUST boldly set the scene (e.g. 'You are sitting across from a VC...')
+5. The 'question' field MUST be dialogue: 'How do you respond?' or 'What do you say?'
+6. The 'impactIfWrong' MUST describe the stakeholder's negative physical reaction (e.g. 'The investor rolls his eyes and closes his notebook.')
+7. 15 questions total, varied types, real branching consequences.
 
 Return EXACTLY this JSON (no markdown, no code fences):
 {
@@ -74,50 +75,57 @@ Return EXACTLY this JSON (no markdown, no code fences):
   "questions": [
     {
       "id": 1, "stage": 1, "type": "mcq",
-      "context": "String (1 sentence setting the scene)",
-      "question": "String — starts with 'For YOUR idea: ${idea}...'",
-      "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
-      "correct": "A", "explanation": "String (2 sentences, mention real company outcome)", "analogy": "String (Indian analogy)", "impactIfWrong": "String", "branchesTo": null
+      "stakeholder": "String (e.g. '👔 Seed Investor')",
+      "context": "String (1 sentence setting the scene where you are talking to this stakeholder)",
+      "question": "String (e.g. 'How do you respond?' or 'What is your pitch?')",
+      "options": { "A": "String (Dialogue — 'I tell them that...')", "B": "String", "C": "String", "D": "String" },
+      "correct": "A", "explanation": "String (2 sentences, why the stakeholder liked this and mention real company outcome)", "analogy": "String (Indian analogy)", "impactIfWrong": "String (The stakeholder's negative REACTION if failed)", "branchesTo": null
     },
     {
       "id": 2, "stage": 1, "type": "truefalse",
+      "stakeholder": "String (e.g. '🤝 Co-founder')",
       "context": "String",
-      "statement": "String (a bold claim about the right strategy for this crisis)",
+      "statement": "String (A claim made by the stakeholder that you must agree or disagree with)",
       "correct": true,
       "explanation": "String", "analogy": "String", "branchesTo": null
     },
     {
       "id": 3, "stage": 1, "type": "mcq",
+      "stakeholder": "String",
       "context": "String",
-      "question": "String — hard trade-off question",
+      "question": "How do you respond?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "B", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
     },
     {
       "id": 4, "stage": 1, "type": "fillblank",
+      "stakeholder": "String",
       "context": "String",
-      "sentence": "String — use ___ for the missing word/number (e.g. 'The founder should focus on ___ before scaling.')",
+      "sentence": "String (The stakeholder demands a number or metric: 'We need ___ to approve this.')",
       "answer": "String", "acceptable_answers": ["String", "String"], "explanation": "String", "analogy": "String", "branchesTo": null
     },
     {
       "id": 5, "stage": 1, "type": "mcq",
-      "context": "String — stage 1 culminates here",
-      "question": "String — the stage 1 final decision",
+      "stakeholder": "String",
+      "context": "String",
+      "question": "How do you handle this ultimatum?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "C", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
     },
     {
       "id": 6, "stage": 2, "type": "mcq",
-      "context": "String — stage 2 opens, crisis deepens",
-      "question": "String — now the stakes are higher",
+      "stakeholder": "String",
+      "context": "String",
+      "question": "What offer do you make them?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "A", "explanation": "String", "analogy": "String", "impactIfWrong": "String",
       "branchesTo": { "ifCorrect": "stage2_expert", "otherwise": "stage2_support" }
     },
     {
       "id": 7, "stage": 2, "type": "match",
+      "stakeholder": "String (e.g. '📊 Board of Directors')",
       "context": "String",
-      "question": "Match each strategy to its correct outcome in this scenario",
+      "question": "Match your negotiation offers to their corresponding stakeholder demands.",
       "pairs": [
         { "left": "String", "right": "String" },
         { "left": "String", "right": "String" },
@@ -128,35 +136,40 @@ Return EXACTLY this JSON (no markdown, no code fences):
     },
     {
       "id": 8, "stage": 2, "type": "mcq",
-      "context": "String — new data point emerges",
-      "question": "String — what does this data tell you",
+      "stakeholder": "String",
+      "context": "String",
+      "question": "How do you defend your model?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "D", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
     },
     {
       "id": 9, "stage": 2, "type": "truefalse",
+      "stakeholder": "String",
       "context": "String",
-      "statement": "String — a common founder misconception that sounds true",
+      "statement": "String",
       "correct": false,
-      "explanation": "String (explain the counterintuitive truth)", "analogy": "String", "branchesTo": null
+      "explanation": "String", "analogy": "String", "branchesTo": null
     },
     {
       "id": 10, "stage": 2, "type": "mcq",
-      "context": "String — competitor makes a move",
-      "question": "String — how do you respond",
+      "stakeholder": "String",
+      "context": "String",
+      "question": "What do you tell the press?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "B", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
     },
     {
       "id": 11, "stage": 2, "type": "fillblank",
-      "context": "String — stage 2 analysis",
-      "sentence": "String — use ___ for blank (a metric or strategy keyword)",
+      "stakeholder": "String",
+      "context": "String",
+      "sentence": "String",
       "answer": "String", "acceptable_answers": ["String", "String"], "explanation": "String", "analogy": "String", "branchesTo": null
     },
     {
       "id": 12, "stage": 3, "type": "mcq",
-      "context": "String — survived! Now growing. Stage 3 opens.",
-      "question": "String — growth strategy question",
+      "stakeholder": "String",
+      "context": "String",
+      "question": "How do you close the deal?",
       "options": { "A": "String", "B": "String", "C": "String", "D": "String" },
       "correct": "A", "explanation": "String", "analogy": "String", "impactIfWrong": "String", "branchesTo": null
     },

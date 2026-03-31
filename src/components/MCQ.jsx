@@ -71,23 +71,25 @@ export default function MCQ({ data, onNext, isLast }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Options */}
+      {/* Dialogue Options */}
       <div className="space-y-3">
         {Object.entries(options).map(([key, text]) => (
           <button
             key={key}
             type="button"
             onClick={() => handleSelect(key)}
-            className={`w-full text-left p-4 rounded-xl border transition-all duration-200 flex items-center gap-4 relative ${optStyle(key)}`}
+            className={`w-full text-left p-4 rounded-xl border transition-all duration-200 flex items-center gap-4 relative group ${optStyle(key)}`}
           >
-            <span className={`w-8 h-8 rounded-md border flex-shrink-0 flex items-center justify-center font-bold text-sm ${
+            <span className={`w-8 h-8 rounded-md border flex-shrink-0 flex items-center justify-center font-bold text-sm transition-colors ${
               locked && key === data.correct ? 'bg-successGreen border-successGreen text-white' :
               locked && key === selected ? 'bg-accentRed border-accentRed text-white' :
-              'bg-navy border-white/20 text-muted'
+              'bg-navy border-white/20 text-muted group-hover:text-saffron group-hover:border-saffron/50'
             }`}>
               {key}
             </span>
-            <span className="text-white font-medium flex-1 leading-tight">{text}</span>
+            <div className="flex-1 flex flex-col">
+              <span className="text-white font-medium leading-tight">"{text}"</span>
+            </div>
             {locked && key === data.correct && <CheckCircle className="w-5 h-5 text-successGreen flex-shrink-0" />}
             {locked && key === selected && key !== data.correct && <XCircle className="w-5 h-5 text-accentRed flex-shrink-0" />}
           </button>
@@ -118,24 +120,27 @@ export default function MCQ({ data, onNext, isLast }) {
               </div>
             )}
 
-            {/* Impact if wrong */}
+            {/* Reaction if wrong */}
             {selected !== data.correct && data.impactIfWrong && (
-              <div className="flex items-start gap-3 glass-card p-4 border-l-4 border-amber-500 bg-amber-500/10">
-                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-amber-200 text-sm font-medium leading-relaxed">{data.impactIfWrong}</p>
+              <div className="flex items-start gap-3 glass-card p-4 border-l-4 border-accentRed bg-accentRed/10">
+                <AlertTriangle className="w-5 h-5 text-accentRed flex-shrink-0 mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="text-accentRed font-bold text-xs uppercase tracking-wider mb-1">Stakeholder Reaction</span>
+                  <p className="text-red-200 text-sm font-medium leading-relaxed">{data.impactIfWrong}</p>
+                </div>
               </div>
             )}
 
-            {/* Explanation */}
-            <div className="bg-surface border border-white/10 rounded-xl p-5">
-              <h3 className="font-bold mb-2 text-sm">
+            {/* AI Mentor Explanation */}
+            <div className="bg-surface/80 border border-white/10 rounded-xl p-5 shadow-lg">
+              <h3 className="font-bold mb-2 text-sm flex items-center gap-2">
                 {selected === data.correct
-                  ? <span className="text-successGreen">✓ Excellent thinking!</span>
-                  : <span className="text-saffron">Here's the founder's perspective:</span>}
+                  ? <span className="text-successGreen flex items-center gap-1"><CheckCircle className="w-4 h-4"/> Conversation Successful</span>
+                  : <span className="text-muted flex items-center gap-1">Udyam Guru's Advice:</span>}
               </h3>
-              <p className="text-muted leading-relaxed text-sm">{data.explanation}</p>
+              <p className="text-gray-300 leading-relaxed text-sm">{data.explanation}</p>
               {data.analogy && (
-                <p className="text-saffron italic text-xs border-l-2 border-saffron pl-3 mt-3">
+                <p className="text-saffron italic text-sm border-l-2 border-saffron pl-3 mt-4 bg-saffron/5 p-2 rounded-r-lg">
                   "Think of it like... {data.analogy}"
                 </p>
               )}
