@@ -26,8 +26,57 @@ export default function AICoach() {
   const { streamText } = useOpenAI();
   const { generateSpeech } = useSarvam();
   
-  // Audio playback state
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
+  
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const scrollRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const currentLang = LANGUAGES.find(l => l.code === state.language) || LANGUAGES[0];
+
+  // Implement Speech Recognition (STT)
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = state.language === 'en' ? 'en-IN' : state.language === 'hi' ? 'hi-IN' : state.language === 'te' ? 'te-IN' : 'ta-IN';
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => (prev.trim() + ' ' + transcript).trim());
+        setIsListening(false);
+      };
+
+      recognition.onerror = (e) => {
+        console.error("Speech detection error:", e);
+        setIsListening(false);
+      };
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+  }, [state.language]);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error("Speech recognition start failed:", e);
+      }
+    }
+  };
 
   const speakText = async (text) => {
     if (!voiceEnabled) return;
@@ -41,20 +90,6 @@ export default function AICoach() {
       console.warn("Speech synthesis failed:", err);
     }
   };
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  const scrollRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const audioRef = useRef(null);
-  const currentLang = LANGUAGES.find(l => l.code === state.language) || LANGUAGES[0];
 
   // Global open listener
   useEffect(() => {
@@ -219,9 +254,17 @@ ai:`;
               </p>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="p-2 rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setVoiceEnabled(!voiceEnabled)} 
+              className={`p-2 rounded-xl transition-all ${voiceEnabled ? 'bg-[#FF6B35]/20 text-[#FF6B35]' : 'bg-white/5 text-white/50'}`}
+            >
+              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
+            <button onClick={() => setIsOpen(false)} className="p-2 rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Chat Area */}
@@ -305,12 +348,20 @@ ai:`;
             >
               <ImagePlus className="w-5 h-5" />
             </button>
+            <button
+              type="button"
+              onClick={toggleListening}
+              disabled={isTyping}
+              className={`absolute left-10 p-2 rounded-xl transition-all z-10 disabled:opacity-50 ${isListening ? 'text-accentRed bg-accentRed/10 animate-pulse ring-2 ring-accentRed' : 'text-white/50 hover:bg-white/5'}`}
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-all text-sm"
+              placeholder={isListening ? "Listening..." : "Ask anything..."}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-20 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-all text-sm"
             />
             <button
               type="submit"
