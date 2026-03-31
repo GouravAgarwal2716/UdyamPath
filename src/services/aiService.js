@@ -288,23 +288,44 @@ export async function chatWithCoach({ messages, startup, language }) {
   const systemContext = `You are the UdyamPath AI Mentor. You are guiding an Indian social entrepreneur building: "${startup?.idea || 'a new project'}".
 Use language: ${langName}. Be direct, empathetic, and focus on practical Indian context (jugaad, rural dynamics, unit economics). Do not be overly verbose. Use markdown for readability.`;
 
-  const chatHistory = messages.slice(-8).map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'model',
-    parts: [{ text: msg.content }],
-  }));
+  const chatHistory = messages.slice(-8).map(msg => {
+    const parts = [];
+    if (msg.content) {
+      parts.push({ text: msg.content });
+    }
+    if (msg.image) {
+      parts.push({
+        inlineData: {
+          data: msg.image.data,
+          mimeType: msg.image.mimeType
+        }
+      });
+    }
+    // Fallback if empty
+    if (parts.length === 0) {
+      parts.push({ text: "Empty message" });
+    }
+
+    return {
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts,
+    };
+  });
 
   try {
     const chat = m.startChat({
       history: chatHistory.slice(0, -1),
       generationConfig: {
-        maxOutputTokens: 300,
+        maxOutputTokens: 500,
         temperature: 0.8,
       },
       systemInstruction: systemContext,
     });
 
-    const lastMsg = messages[messages.length - 1];
-    const result = await chat.sendMessage(lastMsg.content);
+    const lastMsg = chatHistory[chatHistory.length - 1];
+    
+    // Pass the parts array to sendMessage for multidisplay
+    const result = await chat.sendMessage(lastMsg.parts);
     return result.response.text();
   } catch (err) {
     console.error('Coach chat error:', err);
