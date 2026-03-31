@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, Loader2, MessageSquareText, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Send, X, Bot, Loader2, MessageSquareText, Mic, MicOff, Volume2, VolumeX, MessageSquare, ImagePlus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { chatWithCoach } from '../services/aiService';
-import { MessageSquare, X, Send, Bot, Loader2, ImagePlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const PRE_PROMPTS = [
@@ -15,8 +14,6 @@ const PRE_PROMPTS = [
 
 export default function AICoach() {
   const { state, updateState } = useAppContext();
-  const { streamText } = useOpenAI();
-  const { generateSpeech } = useSarvam();
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
