@@ -1,18 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, Loader2, MessageSquareText, Mic, MicOff, Volume2, VolumeX, MessageSquare, ImagePlus } from 'lucide-react';
+import { Send, X, Bot, Loader2, MessageSquareText, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { chatWithCoach } from '../services/aiService';
-import useOpenAI from '../hooks/useOpenAI';
-import useSarvam from '../hooks/useSarvam';
+import { MessageSquare, X, Send, Bot, Loader2, ImagePlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-
-const LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'hi', name: 'Hindi' },
-  { code: 'te', name: 'Telugu' },
-  { code: 'ta', name: 'Tamil' }
-];
 
 const PRE_PROMPTS = [
   "How can I better understand my local competition in India?",
@@ -25,22 +17,6 @@ export default function AICoach() {
   const { state, updateState } = useAppContext();
   const { streamText } = useOpenAI();
   const { generateSpeech } = useSarvam();
-  
-  // Audio playback state
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-
-  const speakText = async (text) => {
-    if (!voiceEnabled) return;
-    try {
-      const audioUrl = await generateSpeech(text);
-      if (audioUrl) {
-        const audio = new Audio(audioUrl);
-        audio.play();
-      }
-    } catch (err) {
-      console.warn("Speech synthesis failed:", err);
-    }
-  };
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -69,7 +45,7 @@ export default function AICoach() {
       const langName = currentLang.name;
       setMessages([{
         role: 'ai',
-        content: `Namaste ${state.user.name.split(' ')[0]}! I'm Udyam Guru, your personal startup mentor. I know you're worried about ${state.user.fear?.toLowerCase()} — that's one of the most common challenges for first-time founders in India. I'll speak to you in ${langName}. What's on your mind today?`,
+        content: `Namaste ${state.user.name.split(' ')[0]}! I'm Udyam Guru, your personal startup mentor. I know you're worried about ${state.user.fear?.toLowerCase()} ΓÇö that's one of the most common challenges for first-time founders in India. I'll speak to you in ${langName}. What's on your mind today?`,
         timestamp: new Date().toISOString()
       }]);
     }
