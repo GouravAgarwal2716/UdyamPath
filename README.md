@@ -1,202 +1,88 @@
-# 🚀 Udyam AI — Build Your Startup Journey
+# 🏛️ UdyamPath: The High-Stakes Stakeholder Simulator
 
-Udyam AI is a full-stack, AI-powered, gamified web platform that transforms any idea into a **personalized, interactive 7-level startup journey**.
+[![Deployment Status](https://img.shields.io/badge/Status-Live-success?style=for-the-badge)](https://udyampath-production.up.railway.app/)
+[![Hackathon](https://img.shields.io/badge/Hackathon-GDG%202026-blue?style=for-the-badge)](https://github.com/GouravAgarwal2716/UdyamPath)
 
-It acts as your **AI co-founder, mentor, and simulator**, helping aspiring entrepreneurs validate, learn, and grow — regardless of language or background.
+> **"Traditional courses teach you to read a map. UdyamPath teaches you to fly the plane during a storm."**
 
----
-
-## 🌟 What Makes It Special
-
-- 🧠 **Dynamic AI Generation** — Every level, challenge, and suggestion is uniquely generated based on your idea
-- 🎮 **Gamified Learning** — Learn entrepreneurship through interactive simulations and games
-- 🤖 **AI Co-Founder (Agentic AI)** — Tracks your progress and guides you
-- 🌐 **Multilingual Support** — Powered by Sarvam AI (English, Telugu, Hindi, Tamil)
-- 📊 **Real-Time Scoring** — Impact, Trust, Feasibility, Scalability
-- 🎯 **India-Focused Insights** — Built for real-world startup challenges
+UdyamPath is an AI-first, immersive simulation engine that prepares Indian social entrepreneurs for the high-stakes reality of building a startup. It bridges the gap between passive learning and real-world execution using vernacular-first agentic AI.
 
 ---
 
-## 🎮 How It Works
+## 🔗 Quick Links
+*   **Live Demo:** [udyampath-production.up.railway.app](https://udyampath-production.up.railway.app/)
+---
 
-1. 💡 **Enter your startup idea** (or upload a document)
-2. 📊 **Get an AI-generated validation dashboard**
-3. 🚀 **Start a 7-level simulation journey**
-4. 🎲 **Play interactive games** (MCQs, decisions, matching)
-5. 📈 **Watch your scores evolve** based on decisions
-6. 🛣️ **View your final startup roadmap**
+## 📖 Table of Contents
+1.  [The Problem & Solution](#-the-problem--solution)
+2.  [Key Features](#-key-features)
+3.  [Agentic AI Architecture](#-agentic-ai-architecture)
+4.  [Technical Stack](#-technical-stack)
+5.  [The Simulation Engine](#-the-simulation-engine)
+6.  [Installation & Setup](#-installation--setup)
+7.  [Hackathon Pitch](#-hackathon-pitch)
 
 ---
 
-## 🧠 Agentic AI System
+## 🛑 The Problem & Solution
+### The Problem
+First-time founders in Bharat (Tier-2/3 India) fail because they lack access to high-stakes decision-making mentors. Traditional education is text-heavy, urban-centric, and passive.
 
-Udyam AI uses a multi-agent system:
-
-- **Validator Agent** → Evaluates your idea
-- **Simulation Agent** → Generates level scenarios
-- **Planner Agent** → Suggests next actions
-- **Coach Agent** → Motivates & guides
-- **Research Agent** → Fetches insights
-
-All agents work together to simulate a **real startup journey**.
+### The Solution: UdyamPath
+We provide a **"Bandersnatch for Business."** Our simulator maps real-world Indian unicorn crises (Zepto, Zomato, Byju's) onto the user's specific social enterprise idea. We replace dry quizzes with **high-stakes dialogue** in the user's native language.
 
 ---
 
-## 📁 Project Structure
-
-```
-.
-├── src/
-│ ├── components/ # UI components (Navbar, Chatbot, Game UI)
-│ ├── context/ # Global state (IdeaContext)
-│ ├── pages/ # Views (Input, Dashboard, Levels, Roadmap)
-│ ├── services/ # API integrations (AI, Translation, YouTube)
-│ ├── App.jsx # Routing
-│ ├── main.jsx # Entry point
-│ └── index.css # Styles
-├── public/ # Static assets
-├── .env # Environment variables
-├── package.json
-├── vite.config.js
-└── README.md
-```
+## ✨ Key Features
+*   **Stakeholder Interaction Engine:** Talk directly to 👔 Investors, 🏛️ Govt Officials, and 🧑‍🌾 Rural Beneficiaries.
+*   **Vernacular First:** Full voice-based AI coaching in **Hindi, Telugu, Tamil, and English** via **Sarvam AI**.
+*   **Dynamic Intelligence:** Real-time news context integration ensures simulations reflect current RBI/GOI regulations.
+*   **Narrative Branching:** Your choices create specialized "Growth Paths," affecting your startup's `Community_Trust` and `Sustainability` scores.
 
 ---
 
-## 🛠️ Tech Stack
-
-| Layer              | Technology                 |
-| ------------------ | -------------------------- |
-| Frontend           | React + Vite + TailwindCSS |
-| AI Engine          | OpenAI / Gemini            |
-| Translation        | Sarvam AI                  |
-| Videos             | YouTube Data API           |
-| Backend (optional) | Node.js + Express          |
-| Database           | Firebase Firestore         |
-| Auth               | Firebase Auth              |
+## 🧠 Agentic AI Architecture
+UdyamPath operates as a **Multi-Agent Ecosystem**:
+*   **The Validator Agent:** Audits ideas for social impact and market viability.
+*   **The Simulation Director:** Transmutes real case studies into personalized narratives.
+*   **The Udyam Guru (Mentor):** A supportive AI providing real-time audio guidance and emotional support.
+*   **The Resource Agent:** Dynamically maps YouTube/Whitepaper resources to the user's "Blindspots."
 
 ---
 
-## 🔐 Environment Setup
-
-Create a `.env` file in the root directory:
-
-```env
-VITE_OPENAI_API_KEY=your_openai_api_key
-VITE_YOUTUBE_API_KEY=your_youtube_api_key
-VITE_SARVAM_API_KEY=your_sarvam_api_key
-
-# Firebase (optional)
-VITE_FIREBASE_API_KEY=your_key
-VITE_FIREBASE_AUTH_DOMAIN=your_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-```
+## 🛠️ Technical Stack
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | **React 18 + Vite** (Ultra-fast performance) |
+| **Styling** | **TailwindCSS** (Modern, glossy design system) |
+| **AI Brain** | **OpenAI GPT-4o / Google Gemini 1.5 Flash** |
+| **Vernacular** | **Sarvam AI** (Conversational TTS) |
+| **Database** | **Firebase Firestore** (Real-time Cloud Sync) |
+| **Auth** | **Firebase Auth** (Secure Profile Hydration) |
+| **Animation** | **Framer Motion** (Immersive UI transitions) |
 
 ---
 
-## 🚀 Installation
-
-```bash
-npm install
-```
-
----
-
-## ▶️ Run the App
-
-```bash
-npm run dev
-```
-
-App will run at:
-[http://localhost:5173](http://localhost:5173)
+## ⚙️ The Simulation Engine
+Our simulator uses an **8-Core Curriculum** targeting the critical failure points of social startups:
+1.  **Fundraising (Seed)**
+2.  **Crisis Management (Byju's Style)**
+3.  **Sales & Growth (Finding first 100 customers)**
+4.  **HR & Leadership (Team Building)**
+5.  **Govt & Compliance (RBI/MSME regulations)**
+6.  **Zero-Budget Marketing (Viral Growth)**
+7.  **Pivot Strategy**
+8.  **Revenue Modeling**
 
 ---
 
-## 🌐 Features Breakdown
+## 🚀 Installation & Setup
 
-### 📊 AI Dashboard
-
-- Idea validation
-- Strengths & weaknesses
-- Multi-metric scoring
-
----
-
-### 🎮 Simulation Levels
-
-- 7 dynamic levels
-- AI-generated scenarios
-- Interactive games
-- Decision-based outcomes
-
----
-
-### 📈 Score System
-
-- Impact Score
-- Trust Score
-- Feasibility Score
-- Scalability Score
-
----
-
-### 🎥 Smart Sidebar
-
-- Context-aware YouTube videos
-- Learning resources per level
-
----
-
-### 🤖 AI Chatbot (Multilingual)
-
-- Context-aware responses
-- Uses Sarvam AI for translation
-- Supports multiple Indian languages
-- Provides guidance, motivation, and action steps
-
----
-
-### 📂 File Upload
-
-- Upload idea via PDF/DOCX/TXT
-- Auto text extraction
-
----
-
-### 🛣️ Journey Roadmap
-
-- Visual scroll-based journey
-- Shows growth and decisions
-- Final startup evolution
-
----
-
-## ⚡ Future Enhancements
-
-- 🎤 Voice-based AI interaction
-- 🧑🤝🧑 Multiplayer simulation
-- 🧪 “What-if” scenario testing
-- 🏅 XP, badges & achievements
-- 📊 Advanced analytics dashboard
-
----
-
-## 🏆 Hackathon Pitch Line
-
-> "Udyam AI is not just a tool — it’s a personalized startup journey powered by AI that acts like your co-founder, guiding you from idea to execution."
-
----
-
-## 💬 Final Note
-
-This project is built to democratize entrepreneurship by giving every aspiring founder:
-
-- Guidance
-- Simulation
-- Support
-- Confidence
+1. **Clone the repo**
+2. **Install:** `npm install`
+3. **Environment:** Create `.env` in the root:
+   ```env
+   VITE_OPENAI_API_KEY=your_key
+   VITE_GEMINI_API_KEY=your_key
+   VITE_SARVAM_API_KEY=your_key
+   VITE_FIREBASE_API_KEY=...
