@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { chatWithCoach } from '../services/aiService';
-import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, Loader2, ImagePlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+const PRE_PROMPTS = [
+  "How can I better understand my local competition in India?",
+  "What are some low-cost marketing strategies for rural areas?",
+  "Help me calculate my unit economics.",
+  "Show me some government schemes for MSMEs."
+];
 
 export default function AICoach() {
   const { state } = useAppContext();
@@ -10,7 +17,10 @@ export default function AICoach() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     // Seed initial message based on user state only when opened the first time
@@ -22,7 +32,7 @@ export default function AICoach() {
         }
       ]);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length, state.idea, state.user]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -30,13 +40,39 @@ export default function AICoach() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = async (e) => {
-    e?.preventDefault();
-    if (!input.trim() || isTyping) return;
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert("Image size should be less than 5MB");
+      return;
+    }
 
-    const userMsg = input.trim();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Data = e.target.result.split(',')[1];
+      setSelectedImage({
+        data: base64Data,
+        mimeType: file.type,
+        previewUrl: e.target.result
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSend = async (e, textOverride = null) => {
+    e?.preventDefault();
+    const textToSend = textOverride || input;
+    
+    if ((!textToSend.trim() && !selectedImage) || isTyping) return;
+
     setInput('');
-    const newMessages = [...messages, { role: 'user', content: userMsg }];
+    const imageToSend = selectedImage;
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    const newMessages = [...messages, { role: 'user', content: textToSend, image: imageToSend }];
     setMessages(newMessages);
     setIsTyping(true);
 
@@ -97,6 +133,9 @@ export default function AICoach() {
                   ? 'bg-[#FF6B35] text-white rounded-tr-none' 
                   : 'bg-[#202f36] text-white/90 border border-white/10 rounded-tl-none'
               }`}>
+                 {msg.image?.previewUrl && (
+                   <img src={msg.image.previewUrl} alt="uploaded" className="max-w-full rounded-lg mb-3 shadow-sm border border-black/10" />
+                 )}
                  <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
                    {msg.content}
                  </ReactMarkdown>
@@ -116,19 +155,66 @@ export default function AICoach() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Pre-prompts & Image Preview Area */}
+        <div className="bg-[#1a1a2e] px-4 pt-3 border-t-2 border-white/5">
+          {/* Pre-prompts - show mainly when less messages */}
+          {messages.length <= 3 && !selectedImage && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {PRE_PROMPTS.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSend(null, prompt)}
+                  disabled={isTyping}
+                  className="text-[11px] bg-white/5 border border-white/10 text-white/70 px-3 py-1.5 rounded-full hover:bg-[#FF6B35]/20 hover:text-[#FF6B35] transition-colors text-left disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Image Preview */}
+          {selectedImage && (
+            <div className="relative inline-block mb-3">
+              <img src={selectedImage.previewUrl} alt="Preview" className="h-16 w-16 object-cover rounded-xl border-2 border-white/20 shadow-lg" />
+              <button 
+                onClick={() => { setSelectedImage(null); if(fileInputRef.current) fileInputRef.current.value='' }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Input Area */}
-        <div className="p-4 bg-[#1a1a2e] border-t-2 border-white/5">
+        <div className="p-4 pt-0 bg-[#1a1a2e] pb-6">
           <form onSubmit={handleSend} className="relative flex items-center">
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              onChange={handleImageSelect} 
+              className="hidden" 
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isTyping}
+              className="absolute left-2 p-2 rounded-xl text-white/50 hover:text-[#FF6B35] transition-colors z-10 disabled:opacity-50 hover:bg-white/5"
+            >
+              <ImagePlus className="w-5 h-5" />
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-4 pr-12 text-white placeholder-white/30 focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-all"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-[#FF6B35] focus:ring-1 focus:ring-[#FF6B35] transition-all text-sm"
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={(!input.trim() && !selectedImage) || isTyping}
               className="absolute right-2 p-2 rounded-xl text-[#FF6B35] disabled:text-white/20 transition-colors"
             >
               {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -139,7 +225,7 @@ export default function AICoach() {
       
       {/* Overlay */}
       {isOpen && (
-         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden" onClick={() => setIsOpen(false)} />
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 sm:hidden" onClick={() => setIsOpen(false)} />
       )}
     </>
   );
